@@ -154,6 +154,62 @@ Rectangle {
                         cache: false
                     }
 
+                    Repeater {
+                        model: backend.layoutCutCount
+
+                        delegate: Rectangle {
+                            id: cutMarker
+                            property real sourcePosition: backend.layoutCutPosition(index)
+
+                            x: reconstructionImage.x
+                               + sourcePosition * reconstructionImage.width
+                               - width / 2
+                            y: reconstructionImage.y
+                            width: 18
+                            height: reconstructionImage.height
+                            color: "#ef476f"
+                            opacity: 0.82
+                            z: 10
+
+                            Rectangle {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.top: parent.top
+                                width: 70
+                                height: 22
+                                radius: 7
+                                color: "#ef476f"
+
+                                Label {
+                                    anchors.centerIn: parent
+                                    text: "Corte " + (index + 1)
+                                    color: "white"
+                                    font.pixelSize: 9
+                                    font.bold: true
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.SizeHorCursor
+                                drag.target: cutMarker
+                                drag.axis: Drag.XAxis
+                                drag.minimumX: reconstructionImage.x - cutMarker.width / 2
+                                drag.maximumX: reconstructionImage.x
+                                                  + reconstructionImage.width
+                                                  - cutMarker.width / 2
+
+                                onReleased: {
+                                    var position = (
+                                        cutMarker.x
+                                        + cutMarker.width / 2
+                                        - reconstructionImage.x
+                                    ) / Math.max(1, reconstructionImage.width)
+                                    backend.setLayoutCut(index, position)
+                                }
+                            }
+                        }
+                    }
+
                     ScrollBar.horizontal: ScrollBar {
                         policy: ScrollBar.AsNeeded
                     }
@@ -175,6 +231,51 @@ Rectangle {
                           : "Preparando reconstrucción…"
                     color: "#59677c"
                 }
+            }
+        }
+
+        RowLayout {
+            visible: backend.layoutMode === "horizontal"
+            Layout.fillWidth: true
+            Layout.preferredHeight: 38
+            spacing: 8
+
+            Label {
+                text: "Cortes de página: " + backend.layoutCutCount
+                color: "#dbe5f2"
+                font.pixelSize: 11
+                font.bold: true
+            }
+
+            Button {
+                Layout.preferredWidth: 150
+                Layout.preferredHeight: 34
+                text: "Agregar corte aquí"
+                enabled: backend.montagePreviewSource !== "" && !backend.montageBusy
+                onClicked: {
+                    var center = (
+                        reconstructionView.contentX
+                        + reconstructionView.width * 0.5
+                        - reconstructionImage.x
+                    ) / Math.max(1, reconstructionImage.width)
+                    backend.addLayoutCut(center)
+                }
+            }
+
+            Button {
+                Layout.preferredWidth: 115
+                Layout.preferredHeight: 34
+                text: "Quitar cortes"
+                enabled: backend.layoutCutCount > 0 && !backend.busy
+                onClicked: backend.clearLayoutCuts()
+            }
+
+            Label {
+                Layout.fillWidth: true
+                text: "Arrastra las líneas rosas para decidir dónde se divide la partitura."
+                color: "#77879f"
+                font.pixelSize: 10
+                elide: Text.ElideRight
             }
         }
 
