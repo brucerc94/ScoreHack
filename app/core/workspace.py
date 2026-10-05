@@ -14,6 +14,7 @@ class Workspace:
         self.crops = self.root / "crops"
         self.aligned = self.root / "aligned"
         self.sheets = self.root / "sheets"
+        self.preview_pdf = self.root / "preview.pdf"
         self.video = self.root / "video.mp4"
         for directory in (self.frames, self.aligned, self.crops, self.sheets):
             directory.mkdir(parents=True, exist_ok=True)
