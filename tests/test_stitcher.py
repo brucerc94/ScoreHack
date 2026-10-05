@@ -45,7 +45,7 @@ def test_horizontal_stitch_reconstructs_overlapping_frames() -> None:
 
         result = stitch_horizontal([first, second], output)
 
-        stitched = cv2.imread(str(result), cv2.IMREAD_COLOR)
+        stitched = cv2.imread(str(result.output_path), cv2.IMREAD_COLOR)
         assert stitched is not None
         assert stitched.shape[0] == 220
         assert 285 <= result.auto_overlaps[0] <= 315
