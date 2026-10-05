@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from threading import Event
 from typing import Callable, Iterable
 
 import cv2
@@ -10,31 +11,32 @@ ProgressCallback = Callable[[float, str], None]
 
 
 def _overlay_mask(image: np.ndarray) -> np.ndarray:
-    """
-    Detecta resaltadores/cursors verticales coloreados superpuestos sobre la partitura.
-
-    El contenido normal de una partitura es mayormente blanco/negro. Un resaltado
-    interactivo suele introducir saturación de color y una geometría alta/estrecha.
-    """
+    """Detecta resaltadores/cursos coloreados y altos sobre la partitura."""
     height, width = image.shape[:2]
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    saturated = cv2.inRange(
+    colored = cv2.inRange(
         hsv,
         np.array([75, 28, 70], dtype=np.uint8),
         np.array([115, 255, 255], dtype=np.uint8),
     )
-
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 9))
-    saturated = cv2.morphologyEx(saturated, cv2.MORPH_CLOSE, kernel)
-    saturated = cv2.morphologyEx(saturated, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    colored = cv2.morphologyEx(
+        colored,
+        cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (5, 9)),
+    )
+    colored = cv2.morphologyEx(
+        colored,
+        cv2.MORPH_OPEN,
+        np.ones((3, 3), np.uint8),
+    )
 
     components, _, stats, _ = cv2.connectedComponentsWithStats(
-        saturated,
+        colored,
         connectivity=8,
     )
 
-    mask = np.zeros((height, width), dtype=np.uint8)
+    mask = np.zeros((height, width), dtype=bool)
     for component in range(1, components):
         x, y, w, h, area = stats[component]
         if h < height * 0.28:
@@ -43,15 +45,13 @@ def _overlay_mask(image: np.ndarray) -> np.ndarray:
             continue
         if area < max(80, int(w * h * 0.08)):
             continue
-        mask[y : y + h, x : x + w] = 255
+        mask[y : y + h, x : x + w] = True
 
-    # Amplía ligeramente la máscara para incluir bordes del resaltador.
-    mask = cv2.dilate(
-        mask,
+    return cv2.dilate(
+        mask.astype(np.uint8),
         cv2.getStructuringElement(cv2.MORPH_RECT, (5, 7)),
         iterations=1,
-    )
-    return mask.astype(bool)
+    ).astype(bool)
 
 
 def _read(path: Path) -> np.ndarray:
@@ -61,43 +61,33 @@ def _read(path: Path) -> np.ndarray:
     return image
 
 
-def _remove_from_neighbors(
+def _restore_from_neighbors(
     current: np.ndarray,
     mask: np.ndarray,
-    neighbors: list[np.ndarray],
+    neighbors: Iterable[np.ndarray],
 ) -> np.ndarray:
-    if not neighbors or not mask.any():
+    """
+    Rellena el overlay con el primer vecino temporal que no tenga overlay.
+
+    Se evita construir arrays gigantes con np.stack/np.nan, algo que puede
+    disparar el consumo de RAM en videos de alta resolución.
+    """
+    if not mask.any():
         return current
 
-    valid_values: list[np.ndarray] = []
-    for neighbor in neighbors:
-        neighbor_mask = _overlay_mask(neighbor)
-        usable = mask & ~neighbor_mask
-        if usable.any():
-            values = np.zeros_like(current)
-            values[usable] = neighbor[usable]
-            valid_values.append(values)
-
-    if not valid_values:
-        return current
-
-    stack = np.stack(valid_values, axis=0)
-    valid = np.stack(
-        [
-            mask & ~_overlay_mask(neighbor)
-            for neighbor in neighbors
-        ],
-        axis=0,
-    )
-
-    count = valid.sum(axis=0)
-    median = np.median(
-        np.where(valid[..., None], stack, np.nan),
-        axis=0,
-    )
     result = current.copy()
-    fill = mask & (count > 0)
-    result[fill] = np.nan_to_num(median[fill], nan=0.0).astype(np.uint8)
+    remaining = mask.copy()
+
+    for neighbor in neighbors:
+        if not remaining.any():
+            break
+
+        neighbor_mask = _overlay_mask(neighbor)
+        usable = remaining & ~neighbor_mask
+        if usable.any():
+            result[usable] = neighbor[usable]
+            remaining[usable] = False
+
     return result
 
 
@@ -106,13 +96,13 @@ def remove_transient_overlays(
     output_dir: Path,
     radius: int = 2,
     on_progress: ProgressCallback | None = None,
+    cancel_event: Event | None = None,
 ) -> tuple[Path, ...]:
     """
-    Elimina resaltadores/cursors coloreados que cambian de posición entre frames.
+    Elimina resaltadores/cursos coloreados que cambian de posición entre frames.
 
-    Solo modifica regiones detectadas como overlays verticales coloreados. El
-    contenido musical se recupera desde vecinos temporales donde esa región está
-    limpia, evitando borrar notas o líneas negras de la partitura.
+    La recuperación se hace desde frames temporales vecinos. Si no existe un
+    vecino limpio para una región, se conserva el contenido original.
     """
     paths = list(image_paths)
     if not paths:
@@ -124,20 +114,23 @@ def remove_transient_overlays(
     result: list[Path] = []
 
     for index, source in enumerate(paths):
+        if cancel_event and cancel_event.is_set():
+            raise InterruptedError("Proceso cancelado por el usuario.")
+
         current = _read(source)
         mask = _overlay_mask(current)
 
         if mask.any():
-            neighbor_paths = [
-                paths[j]
+            neighbor_indices = [
+                j
                 for j in range(
                     max(0, index - radius),
                     min(len(paths), index + radius + 1),
                 )
                 if j != index
             ]
-            neighbors = [_read(path) for path in neighbor_paths]
-            current = _remove_from_neighbors(current, mask, neighbors)
+            neighbors = (_read(paths[j]) for j in neighbor_indices)
+            current = _restore_from_neighbors(current, mask, neighbors)
 
         target = output_dir / source.name
         if not cv2.imwrite(
