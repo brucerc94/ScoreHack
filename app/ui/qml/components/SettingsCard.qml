@@ -62,6 +62,46 @@ Rectangle {
             }
         }
 
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 44
+            radius: 9
+            color: "#0d1522"
+            border.color: "#1b2a3f"
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 12
+                anchors.rightMargin: 8
+                spacing: 8
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 1
+
+                    Label {
+                        text: "Corregir movimiento"
+                        color: "#dbe5f2"
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
+
+                    Label {
+                        text: "Sigue desplazamientos de cámara y partitura"
+                        color: "#687991"
+                        font.pixelSize: 10
+                        elide: Text.ElideRight
+                    }
+                }
+
+                Switch {
+                    checked: backend.motionCorrection
+                    enabled: !backend.busy
+                    onToggled: backend.setMotionCorrection(checked)
+                }
+            }
+        }
+
         Label {
             text: "Recorte superior"
             color: "#8290a6"
