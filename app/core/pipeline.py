@@ -177,7 +177,7 @@ class ExtractionPipeline:
         overlap_overrides: tuple[int, ...] = (),
     ) -> MontageResult:
         if settings.layout_mode != "horizontal":
-            raise ValueError("El montaje horizontal requiere el modo horizontal.")
+            raise ValueError("La reconstrucción horizontal requiere el modo horizontal.")
 
         cropped = self._prepare_cropped_frames(
             settings,
