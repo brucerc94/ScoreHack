@@ -63,7 +63,6 @@ class AppController(QObject):
         self._layout_mode = "individual"
 
         self._selected_frames: list[int] = []
-        self._current_join = 0
         self._auto_overlaps: tuple[int, ...] = ()
         self._join_confidences: tuple[float, ...] = ()
         self._manual_overlaps: dict[tuple[int, int], int] = {}
@@ -203,24 +202,37 @@ class AppController(QObject):
 
     @Property(list, notify=joinChanged)
     def joinItems(self) -> list[dict]:
-        items = []
+        from app.core.models import AUTO_OVERLAP_MIN_CONFIDENCE
+
+        items: list[dict] = []
         for join in range(self.joinCount):
-            first, second = self._selected_frames[join], self._selected_frames[join + 1]
-            manual = self._manual_overlaps.get((first, second))
+            first = self._selected_frames[join]
+            second = self._selected_frames[join + 1]
+            pair = (first, second)
+            manual = self._manual_overlaps.get(pair)
             auto = self._auto_overlaps[join] if join < len(self._auto_overlaps) else 0
-            confidence = self._join_confidences[join] if join < len(self._join_confidences) else 0.0
+            confidence = (
+                self._join_confidences[join]
+                if join < len(self._join_confidences)
+                else 0.0
+            )
             effective = manual if manual is not None else (
-                auto if confidence >= 0.78 else 0
+                auto if confidence >= AUTO_OVERLAP_MIN_CONFIDENCE else 0
             )
             items.append({
                 "join": join,
-                "label": f"Frame {first + 1} → {second + 1}",
+                "label": f"Frame {first + 1} → Frame {second + 1}",
                 "overlap": effective,
                 "autoOverlap": auto,
                 "confidence": confidence,
                 "manual": manual is not None,
+                "autoReliable": confidence >= AUTO_OVERLAP_MIN_CONFIDENCE,
             })
         return items
+
+    @Property(int, notify=joinChanged)
+    def montageFrameWidth(self) -> int:
+        return self._montage_frame_width
 
     @Slot(str)
     def setSourceText(self, value: str) -> None:
@@ -416,6 +428,8 @@ class AppController(QObject):
         self._schedule_montage_refresh()
 
     def _settings(self, sheets_per_page: int) -> ExtractionSettings:
+        from app.core.models import AUTO_OVERLAP_MIN_CONFIDENCE
+        _ = AUTO_OVERLAP_MIN_CONFIDENCE
         return ExtractionSettings(
             interval_seconds=self._interval_seconds,
             crop_top=self._crop_top,
@@ -451,8 +465,6 @@ class AppController(QObject):
         return 0
 
     def _normalize_join_state(self) -> None:
-        join_count = self.joinCount
-        self._current_join = 0 if join_count == 0 else min(self._current_join, join_count - 1)
         self._auto_overlaps = ()
         self._join_confidences = ()
 
