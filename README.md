@@ -77,9 +77,8 @@ python -m pytest
 2. Pega la URL o pulsa **Subir video**.
 3. Pulsa **Analizar video** para extraer los frames sin fijar todavía la zona de seguimiento.
 4. Ajusta recorte, frame de vista previa y rango. La corrección de movimiento usa ese recorte como región de seguimiento cuando generas el PDF y puedes activar **Quitar resaltado móvil**.
-5. Pulsa **Vista previa** para generar una copia temporal y abrirla con el visor PDF predeterminado, o **Generar PDF** para guardarlo definitivamente.
 5. Define cuántas partituras deben caber por página.
-6. Pulsa **Generar PDF** y elige dónde guardarlo.
+6. Pulsa **Vista previa** para generar una copia temporal y abrirla con el visor PDF predeterminado, o **Generar PDF** para guardarlo definitivamente.
 
 ## Nota técnica
 
