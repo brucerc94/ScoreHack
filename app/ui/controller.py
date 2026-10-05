@@ -7,7 +7,7 @@ from threading import Event, Thread
 from PySide6.QtCore import QObject, Property, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
 
-from app.core.models import ExtractionSettings, PreparationResult
+from app.core.models import ExtractionSettings, MontageResult, PreparationResult
 from app.core.pipeline import ExtractionPipeline
 
 
@@ -32,6 +32,7 @@ class AppController(QObject):
     currentFrameSelectionChanged = Signal()
     montagePreviewChanged = Signal()
     montageBusyChanged = Signal()
+    joinChanged = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -48,16 +49,26 @@ class AppController(QObject):
         self._crop_top = 0
         self._crop_bottom = 0
         self._pipeline: ExtractionPipeline | None = None
-        self._montage_pipeline: ExtractionPipeline | None = None
+
+        self._montage_pipeline = ExtractionPipeline()
         self._cancel_event = Event()
         self._montage_cancel_event = Event()
+
         self._motion_correction = True
         self._remove_overlays = True
         self._layout_mode = "individual"
+
         self._selected_frames: list[int] = []
-        self._events: Queue[tuple[str, object]] = Queue()
+        self._current_join = 0
+        self._auto_overlaps: tuple[int, ...] = ()
+        self._join_confidences: tuple[float, ...] = ()
+        self._manual_overlaps: dict[int, int] = {}
+        self._montage_frame_width = 0
+        self._montage_preview_source = ""
         self._montage_busy = False
         self._montage_generation = 0
+
+        self._events: Queue[tuple[str, object]] = Queue()
 
         self._event_timer = QTimer(self)
         self._event_timer.setInterval(50)
@@ -68,7 +79,6 @@ class AppController(QObject):
         self._montage_timer.setSingleShot(True)
         self._montage_timer.setInterval(180)
         self._montage_timer.timeout.connect(self._refresh_montage_preview)
-        self._montage_preview_source = ""
 
     def _set_status(self, value: str) -> None:
         self._status = value
@@ -182,6 +192,42 @@ class AppController(QObject):
     def montagePreviewSource(self) -> str:
         return self._montage_preview_source
 
+    @Property(int, notify=joinChanged)
+    def joinCount(self) -> int:
+        return max(0, len(self._selected_frames) - 1)
+
+    @Property(int, notify=joinChanged)
+    def currentJoin(self) -> int:
+        return self._current_join
+
+    @Property(str, notify=joinChanged)
+    def currentJoinLabel(self) -> str:
+        if self.joinCount == 0:
+            return "Sin uniones"
+        first = self._selected_frames[self._current_join] + 1
+        second = self._selected_frames[self._current_join + 1] + 1
+        return f"Frame {first} → Frame {second}"
+
+    @Property(int, notify=joinChanged)
+    def currentOverlap(self) -> int:
+        return self._overlap_for_join(self._current_join)
+
+    @Property(int, notify=joinChanged)
+    def currentAutoOverlap(self) -> int:
+        if 0 <= self._current_join < len(self._auto_overlaps):
+            return self._auto_overlaps[self._current_join]
+        return 0
+
+    @Property(float, notify=joinChanged)
+    def currentJoinConfidence(self) -> float:
+        if 0 <= self._current_join < len(self._join_confidences):
+            return self._join_confidences[self._current_join]
+        return 0.0
+
+    @Property(int, notify=joinChanged)
+    def montageFrameWidth(self) -> int:
+        return self._montage_frame_width
+
     @Slot(str)
     def setSourceText(self, value: str) -> None:
         self._source = value.strip()
@@ -209,13 +255,10 @@ class AppController(QObject):
 
         self._layout_mode = value
         self.layoutModeChanged.emit()
-
         if value == "horizontal":
             self._schedule_montage_refresh()
         else:
-            self._cancel_montage_preview()
-            self._montage_preview_source = ""
-            self.montagePreviewChanged.emit()
+            self._reset_montage_state()
 
     @Slot()
     def toggleCurrentFrameSelection(self) -> None:
@@ -226,26 +269,69 @@ class AppController(QObject):
             self._selected_frames.remove(self._current_frame)
         else:
             self._selected_frames.append(self._current_frame)
+            self._current_join = max(0, len(self._selected_frames) - 2)
 
-        self.selectionChanged.emit()
-        self.currentFrameSelectionChanged.emit()
-        self._schedule_montage_refresh()
+        self._normalize_join_state()
+        self._emit_selection_state()
 
     @Slot(int)
     def removeSelectedFrame(self, position: int) -> None:
         if not 0 <= position < len(self._selected_frames):
             return
+
+        removed_join = max(0, position - 1)
         self._selected_frames.pop(position)
-        self.selectionChanged.emit()
-        self._schedule_montage_refresh()
+        self._manual_overlaps = {
+            index if index < removed_join else index - 1: value
+            for index, value in self._manual_overlaps.items()
+            if index != removed_join
+        }
+        self._normalize_join_state()
+        self._emit_selection_state()
 
     @Slot()
     def clearFrameSelection(self) -> None:
         if not self._selected_frames:
             return
         self._selected_frames.clear()
-        self.selectionChanged.emit()
+        self._reset_montage_state()
+        self._emit_selection_state()
+
+    @Slot(int)
+    def setCurrentJoin(self, value: int) -> None:
+        if self.joinCount == 0:
+            return
+        new_value = max(0, min(int(value), self.joinCount - 1))
+        if new_value != self._current_join:
+            self._current_join = new_value
+            self.joinChanged.emit()
+
+    @Slot(float)
+    def setCurrentOverlap(self, value: float) -> None:
+        if self.joinCount == 0 or self._montage_frame_width <= 0:
+            return
+
+        minimum = max(8, int(self._montage_frame_width * 0.05))
+        maximum = max(minimum, int(self._montage_frame_width * 0.90))
+        overlap = max(minimum, min(int(round(value)), maximum))
+        self._manual_overlaps[self._current_join] = overlap
+        self.joinChanged.emit()
         self._schedule_montage_refresh()
+
+    @Slot()
+    def resetCurrentOverlap(self) -> None:
+        if self._current_join in self._manual_overlaps:
+            del self._manual_overlaps[self._current_join]
+            self.joinChanged.emit()
+            self._schedule_montage_refresh()
+
+    @Slot()
+    def previousJoin(self) -> None:
+        self.setCurrentJoin(self._current_join - 1)
+
+    @Slot()
+    def nextJoin(self) -> None:
+        self.setCurrentJoin(self._current_join + 1)
 
     @Slot(bool)
     def setRemoveOverlays(self, value: bool) -> None:
@@ -268,20 +354,16 @@ class AppController(QObject):
         if not source:
             self.error.emit("Selecciona un video o pega una URL de YouTube.")
             return
-
         if self._interval_seconds <= 0:
             self.error.emit("El intervalo debe ser mayor que 0.")
             return
 
         self._close_pipeline()
-        self._close_montage_pipeline()
-        self._selected_frames.clear()
-        self.selectionChanged.emit()
-        self.currentFrameSelectionChanged.emit()
-        self._montage_preview_source = ""
-        self.montagePreviewChanged.emit()
-
         self._cancel_event.clear()
+        self._reset_montage_state()
+        self._selected_frames.clear()
+        self._emit_selection_state()
+
         self._set_busy(True)
         self._set_progress(0.0)
         self._set_status("Analizando video…")
@@ -296,7 +378,7 @@ class AppController(QObject):
             return
 
         self._close_pipeline()
-        self._close_montage_pipeline()
+        self._reset_montage_state()
         self._preparation = None
         self._frame_paths = ()
         self._current_frame = 0
@@ -305,9 +387,7 @@ class AppController(QObject):
         self._crop_top = 0
         self._crop_bottom = 0
         self._selected_frames.clear()
-        self.selectionChanged.emit()
-        self._montage_preview_source = ""
-        self.montagePreviewChanged.emit()
+        self._emit_selection_state()
         self.prepared.emit()
         self.frameChanged.emit()
         self.rangeChanged.emit()
@@ -331,10 +411,7 @@ class AppController(QObject):
         if not self._frame_paths:
             return
         maximum = len(self._frame_paths) - 1
-        self._range_start = max(
-            0,
-            min(int(round(value)), self._range_end, maximum),
-        )
+        self._range_start = max(0, min(int(round(value)), self._range_end, maximum))
         self.rangeChanged.emit()
 
     @Slot(float)
@@ -342,10 +419,7 @@ class AppController(QObject):
         if not self._frame_paths:
             return
         maximum = len(self._frame_paths) - 1
-        self._range_end = max(
-            self._range_start,
-            min(int(round(value)), maximum),
-        )
+        self._range_end = max(self._range_start, min(int(round(value)), maximum))
         self.rangeChanged.emit()
 
     @Slot(float)
@@ -363,7 +437,7 @@ class AppController(QObject):
         self._schedule_montage_refresh()
 
     def _settings(self, sheets_per_page: int) -> ExtractionSettings:
-        settings = ExtractionSettings(
+        return ExtractionSettings(
             interval_seconds=self._interval_seconds,
             crop_top=self._crop_top,
             crop_bottom=self._crop_bottom,
@@ -379,23 +453,71 @@ class AppController(QObject):
             remove_overlays=self._remove_overlays,
             layout_mode=self._layout_mode,
             selected_frames=tuple(self._selected_frames),
+            overlap_overrides=self._effective_overlaps(),
         )
-        settings.validate()
-        return settings
+
+    def _effective_overlaps(self) -> tuple[int, ...]:
+        if self.joinCount == 0:
+            return ()
+        if len(self._auto_overlaps) != self.joinCount:
+            return tuple(
+                self._manual_overlaps.get(index, 0)
+                for index in range(self.joinCount)
+            )
+        return tuple(
+            self._manual_overlaps.get(index, self._auto_overlaps[index])
+            for index in range(self.joinCount)
+        )
+
+    def _overlap_for_join(self, join: int) -> int:
+        if join in self._manual_overlaps:
+            return self._manual_overlaps[join]
+        if 0 <= join < len(self._auto_overlaps):
+            return self._auto_overlaps[join]
+        return 0
+
+    def _normalize_join_state(self) -> None:
+        join_count = self.joinCount
+        self._current_join = 0 if join_count == 0 else max(
+            0,
+            min(self._current_join, join_count - 1),
+        )
+        self._manual_overlaps = {
+            index: value
+            for index, value in self._manual_overlaps.items()
+            if 0 <= index < join_count
+        }
+        self._auto_overlaps = ()
+        self._join_confidences = ()
+
+    def _emit_selection_state(self) -> None:
+        self.selectionChanged.emit()
+        self.currentFrameSelectionChanged.emit()
+        self.joinChanged.emit()
+        self._schedule_montage_refresh()
+
+    def _reset_montage_state(self) -> None:
+        self._montage_timer.stop()
+        self._montage_generation += 1
+        self._montage_cancel_event.set()
+        self._selected_frames = list(self._selected_frames)
+        self._current_join = 0
+        self._auto_overlaps = ()
+        self._join_confidences = ()
+        self._manual_overlaps.clear()
+        self._montage_frame_width = 0
+        self._montage_preview_source = ""
+        self._set_montage_busy(False)
+        self.joinChanged.emit()
+        self.montagePreviewChanged.emit()
 
     def _schedule_montage_refresh(self) -> None:
         if self._layout_mode != "horizontal":
             return
-        if not self._frame_paths or len(self._selected_frames) < 2:
-            self._cancel_montage_preview()
-            self._montage_preview_source = ""
-            self.montagePreviewChanged.emit()
+        if len(self._selected_frames) < 2:
+            self._reset_montage_state()
             return
-
         self._montage_timer.start()
-
-    def _cancel_montage_preview(self) -> None:
-        self._montage_cancel_event.set()
 
     def _refresh_montage_preview(self) -> None:
         if self._busy or self._layout_mode != "horizontal":
@@ -409,13 +531,12 @@ class AppController(QObject):
             self._handle_montage_error(str(exc))
             return
 
-        if self._montage_pipeline is None:
-            self._montage_pipeline = ExtractionPipeline()
         self._montage_pipeline.frame_paths = self._frame_paths
 
         self._montage_cancel_event.set()
         montage_cancel_event = Event()
         self._montage_cancel_event = montage_cancel_event
+
         self._montage_generation += 1
         generation = self._montage_generation
 
@@ -425,11 +546,10 @@ class AppController(QObject):
         )
 
         self._set_montage_busy(True)
-        self._events.put(("montage_started", None))
 
         def worker() -> None:
             try:
-                self._montage_pipeline.preview_montage(
+                result = self._montage_pipeline.preview_montage(
                     settings,
                     output,
                     cancel_event=montage_cancel_event,
@@ -439,7 +559,7 @@ class AppController(QObject):
             except Exception as exc:
                 self._events.put(("montage_error", (generation, str(exc))))
             else:
-                self._events.put(("montage_ready", (generation, output)))
+                self._events.put(("montage_ready", (generation, result)))
 
         Thread(target=worker, daemon=True).start()
 
@@ -533,8 +653,6 @@ class AppController(QObject):
                 self._set_busy(False)
             elif name == "worker_finished":
                 self._set_busy(False)
-            elif name == "montage_started":
-                self._set_montage_busy(True)
             elif name == "montage_ready":
                 self._handle_montage_ready(payload)
             elif name == "montage_cancelled":
@@ -552,23 +670,31 @@ class AppController(QObject):
         self._range_end = max(0, len(self._frame_paths) - 1)
         self._crop_top = 0
         self._crop_bottom = 0
+        self._set_busy(False)
         self.prepared.emit()
         self.frameChanged.emit()
         self.rangeChanged.emit()
         self.cropChanged.emit()
-        self._set_busy(False)
 
     def _handle_montage_ready(self, payload: object) -> None:
-        generation, output = payload
+        generation, result = payload
         if generation != self._montage_generation:
             return
-        self._montage_preview_source = Path(output).resolve().as_uri()
+        if not isinstance(result, MontageResult):
+            self._handle_montage_error("La previsualización devolvió un resultado inválido.")
+            return
+
+        self._auto_overlaps = result.auto_overlaps
+        self._join_confidences = result.confidences
+        self._montage_frame_width = result.frame_width
+        self._montage_preview_source = result.output_path.resolve().as_uri()
+        self.joinChanged.emit()
         self.montagePreviewChanged.emit()
         self._set_montage_busy(False)
 
     def _handle_montage_error(self, message: str) -> None:
         self._set_montage_busy(False)
-        self.logMessage.emit(f"✕ Montaje: {message}")
+        self.logMessage.emit(f"✕ Reconstrucción: {message}")
 
     def _handle_previewed(self, payload: object) -> None:
         output = Path(payload)
@@ -598,9 +724,10 @@ class AppController(QObject):
             self._pipeline.close()
             self._pipeline = None
 
-    def _close_montage_pipeline(self) -> None:
+    def close(self) -> None:
+        self._cancel_event.set()
         self._montage_cancel_event.set()
-        if self._montage_pipeline:
-            self._montage_pipeline.close()
-            self._montage_pipeline = None
-        self._set_montage_busy(False)
+        self._event_timer.stop()
+        if not self._busy and self._pipeline:
+            self._pipeline.close()
+            self._pipeline = None
