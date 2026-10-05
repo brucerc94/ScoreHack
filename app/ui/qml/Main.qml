@@ -5,11 +5,24 @@ import "components"
 
 ApplicationWindow {
     id: window
+
     visible: true
-    width: 1240
-    height: 800
-    minimumWidth: 1080
-    minimumHeight: 700
+
+    // Fixed window size calculated from the full content stack:
+    // header + source + main workspace + activity + spacing/margins.
+    width: 1180
+    height: 950
+    minimumWidth: 1180
+    maximumWidth: 1180
+    minimumHeight: 950
+    maximumHeight: 950
+
+    flags: Qt.Window
+           | Qt.WindowTitleHint
+           | Qt.WindowSystemMenuHint
+           | Qt.WindowMinimizeButtonHint
+           | Qt.WindowCloseButtonHint
+
     title: "ScoreCapture — Extractor de Partituras"
     color: "#0b0f17"
 
@@ -65,7 +78,7 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 410
+                    Layout.preferredHeight: 500
                     spacing: 14
 
                     PreviewCard {
@@ -76,7 +89,9 @@ ApplicationWindow {
                     SettingsCard {}
                 }
 
-                ActivityCard {}
+                ActivityCard {
+                    Layout.preferredHeight: 125
+                }
 
                 Item { Layout.preferredHeight: 10 }
             }
