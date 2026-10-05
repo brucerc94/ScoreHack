@@ -6,7 +6,12 @@ from typing import Iterable
 from PIL import Image
 from fpdf import FPDF
 
-_PAGE_SIZES = {"A4": (595.28, 841.89), "LETTER": (612.0, 792.0)}
+_PAGE_SIZES = {
+    "A4": (595.28, 841.89),
+    "A4_LANDSCAPE": (841.89, 595.28),
+    "LETTER": (612.0, 792.0),
+    "LETTER_LANDSCAPE": (792.0, 612.0),
+}
 
 
 def _fit_size(width: int, height: int, box_width: float, box_height: float) -> tuple[float, float]:
