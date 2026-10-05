@@ -272,4 +272,4 @@ class ExtractionPipeline:
     @staticmethod
     def _check_cancel(cancel_event: Event | None) -> None:
         if cancel_event and cancel_event.is_set():
-            raise InterruptedError("Proceso cancelado por el usuario.")
+            raise InterruptedError("Process canceled by user.")
