@@ -217,7 +217,7 @@ Rectangle {
         Rectangle {
             visible: backend.layoutMode === "horizontal" && backend.joinCount > 0
             Layout.fillWidth: true
-            Layout.preferredHeight: 78
+            Layout.preferredHeight: 152
             radius: 10
             color: "#0d1522"
             border.color: "#1b2a3f"
@@ -225,89 +225,122 @@ Rectangle {
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 10
-                spacing: 5
+                spacing: 6
 
                 RowLayout {
                     Layout.fillWidth: true
 
-                    Button {
-                        Layout.preferredWidth: 30
-                        Layout.preferredHeight: 24
-                        text: "‹"
-                        enabled: backend.currentJoin > 0
-                        onClicked: backend.previousJoin()
-                    }
-
                     Label {
-                        Layout.preferredWidth: 116
-                        text: backend.currentJoinLabel
+                        text: "Ajuste de uniones"
                         color: "#dbe5f2"
-                        font.pixelSize: 11
+                        font.pixelSize: 12
                         font.bold: true
-                    }
-
-                    Button {
-                        Layout.preferredWidth: 30
-                        Layout.preferredHeight: 24
-                        text: "›"
-                        enabled: backend.currentJoin < backend.joinCount - 1
-                        onClicked: backend.nextJoin()
                     }
 
                     Item { Layout.fillWidth: true }
 
                     Label {
-                        text: backend.currentJoinConfidence > 0
-                              ? ("Detectado " + backend.currentAutoOverlap + " px")
-                              : "Ajuste manual"
-                        color: "#77879f"
+                        text: "Cada unión tiene su propio solape"
+                        color: "#677990"
                         font.pixelSize: 10
-                    }
-
-                    Button {
-                        Layout.preferredWidth: 46
-                        Layout.preferredHeight: 24
-                        text: "Auto"
-                        onClicked: backend.resetCurrentOverlap()
                     }
                 }
 
-                RowLayout {
+                ListView {
+                    id: joinList
                     Layout.fillWidth: true
-                    spacing: 8
+                    Layout.fillHeight: true
+                    clip: true
+                    spacing: 4
+                    model: backend.joinItems
+                    boundsBehavior: Flickable.StopAtBounds
 
-                    Label {
-                        text: "Solape"
-                        color: "#8290a6"
-                        font.pixelSize: 10
-                    }
+                    delegate: Rectangle {
+                        width: joinList.width
+                        height: 58
+                        radius: 8
+                        color: "#111a28"
+                        border.color: modelData.manual ? "#315f91" : "#1b2a3f"
 
-                    Slider {
-                        Layout.fillWidth: true
-                        from: Math.max(8, Math.round(backend.montageFrameWidth * 0.05))
-                        to: Math.max(16, Math.round(backend.montageFrameWidth * 0.90))
-                        value: backend.currentOverlap
-                        enabled: backend.montageFrameWidth > 0 && !backend.montageBusy
-                        onMoved: backend.setCurrentOverlap(value)
-                    }
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
+                            spacing: 7
 
-                    Label {
-                        Layout.preferredWidth: 72
-                        text: backend.currentOverlap > 0
-                              ? backend.currentOverlap + " px"
-                              : "—"
-                        color: "#cbd5e3"
-                        font.pixelSize: 10
-                        horizontalAlignment: Text.AlignRight
-                    }
+                            Label {
+                                Layout.preferredWidth: 108
+                                text: modelData.label
+                                color: "#dbe5f2"
+                                font.pixelSize: 10
+                                font.bold: true
+                                elide: Text.ElideRight
+                            }
 
-                    Label {
-                        Layout.preferredWidth: 54
-                        text: backend.currentJoinConfidence > 0
-                              ? Math.round(backend.currentJoinConfidence * 100) + "%"
-                              : "—"
-                        color: "#6f8199"
-                        font.pixelSize: 10
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 6
+
+                                    Label {
+                                        text: modelData.autoOverlap > 0
+                                              ? ("Auto " + modelData.autoOverlap + " px")
+                                              : "Auto —"
+                                        color: modelData.autoReliable ? "#778da8" : "#a37e68"
+                                        font.pixelSize: 9
+                                    }
+
+                                    Label {
+                                        text: modelData.confidence > 0
+                                              ? Math.round(modelData.confidence * 100) + "%"
+                                              : "sin detección"
+                                        color: "#65758c"
+                                        font.pixelSize: 9
+                                    }
+
+                                    Label {
+                                        text: modelData.manual
+                                              ? "Manual"
+                                              : (modelData.autoReliable ? "Auto aplicado" : "Requiere ajuste")
+                                        color: modelData.manual ? "#7aaef2" : "#697a91"
+                                        font.pixelSize: 9
+                                    }
+                                }
+
+                                Slider {
+                                    id: seamSlider
+                                    Layout.fillWidth: true
+                                    from: Math.max(8, Math.round(backend.montageFrameWidth * 0.05))
+                                    to: Math.max(16, Math.round(backend.montageFrameWidth * 0.70))
+                                    value: modelData.overlap
+                                    enabled: backend.montageFrameWidth > 0
+                                             && !backend.montageBusy
+                                    onPressedChanged: {
+                                        if (!pressed)
+                                            backend.setJoinOverlap(modelData.join, value)
+                                    }
+                                }
+                            }
+
+                            Label {
+                                Layout.preferredWidth: 54
+                                text: seamSlider.value + " px"
+                                color: "#cbd5e3"
+                                font.pixelSize: 10
+                                horizontalAlignment: Text.AlignRight
+                            }
+
+                            Button {
+                                Layout.preferredWidth: 42
+                                Layout.preferredHeight: 24
+                                text: "Auto"
+                                enabled: !backend.montageBusy
+                                onClicked: backend.resetJoinOverlap(modelData.join)
+                            }
+                        }
                     }
                 }
             }
