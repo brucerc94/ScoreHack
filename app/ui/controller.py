@@ -458,13 +458,6 @@ class AppController(QObject):
             for index in range(self.joinCount)
         )
 
-    def _overlap_for_join(self, join: int) -> int:
-        if join in self._manual_overlaps:
-            return self._manual_overlaps[join]
-        if 0 <= join < len(self._auto_overlaps):
-            return self._auto_overlaps[join]
-        return 0
-
     def _normalize_join_state(self) -> None:
         self._auto_overlaps = ()
         self._join_confidences = ()
@@ -480,7 +473,6 @@ class AppController(QObject):
         self._montage_generation += 1
         self._montage_cancel_event.set()
         self._montage_pending = False
-        self._current_join = 0
         self._auto_overlaps = ()
         self._join_confidences = ()
         self._manual_overlaps.clear()
