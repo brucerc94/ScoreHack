@@ -30,7 +30,7 @@ echo.
 echo Iniciando programa...
 echo.
 
-venv\Scripts\python.exe -m app.main
+venv\Scripts\python.exe -u -m app.main
 set "EXIT_CODE=%errorlevel%"
 
 if not "%EXIT_CODE%"=="0" (
