@@ -113,6 +113,9 @@ class ExtractionPipeline:
         settings: ExtractionSettings,
         cancel_event: Event | None = None,
     ) -> tuple[Path, ...]:
+        if settings.layout_mode == "horizontal" and not settings.selected_frames:
+            raise ValueError("Selecciona manualmente al menos 2 frames para el montaje horizontal.")
+
         candidates = self._selected_frames(settings)
 
         # En un montaje horizontal conservamos el desplazamiento lateral. Estabilizar
