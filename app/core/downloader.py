@@ -36,7 +36,7 @@ def download_youtube(url: str, output_path: Path, on_progress: ProgressCallback 
 
     options = {
         "format": "best[ext=mp4]/best",
-        "outtmpl": str(output_path),
+        "outtmpl": str(output_path.with_suffix(".%(ext)s")),
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
@@ -49,6 +49,13 @@ def download_youtube(url: str, output_path: Path, on_progress: ProgressCallback 
     except yt_dlp.utils.DownloadError as exc:
         raise RuntimeError(f"No se pudo descargar el video: {exc}") from exc
 
-    if not output_path.exists():
-        raise RuntimeError("yt-dlp terminó sin generar el archivo de video.")
-    return output_path
+    candidates = sorted(
+        output_path.parent.glob(f"{output_path.stem}.*"),
+        key=lambda item: item.stat().st_mtime,
+        reverse=True,
+    )
+    for candidate in candidates:
+        if candidate.suffix not in {".part", ".ytdl"} and candidate.is_file():
+            return candidate
+
+    raise RuntimeError("yt-dlp terminó sin generar el archivo de video.")

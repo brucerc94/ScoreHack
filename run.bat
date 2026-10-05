@@ -17,7 +17,7 @@ call venv\Scripts\activate.bat
 if errorlevel 1 goto :error
 
 echo Verificando dependencias...
-venv\Scripts\python.exe -c "import customtkinter, cv2, PIL, skimage, fpdf, yt_dlp" >nul 2>&1
+venv\Scripts\python.exe -c "import PySide6, cv2, PIL, skimage, fpdf, yt_dlp; assert PySide6.__version__ == '6.11.2'" >nul 2>&1
 if errorlevel 1 (
     echo Dependencias faltantes. Instalando...
     venv\Scripts\python.exe -m pip install --upgrade pip

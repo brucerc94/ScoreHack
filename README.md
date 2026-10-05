@@ -2,6 +2,10 @@
 
 Aplicación modular para capturar partituras mostradas en videos de YouTube o videos locales y exportarlas a PDF.
 
+## Interfaz
+
+La aplicación usa **Qt 6 + QML** para una interfaz fluida y moderna. PySide6 es el binding oficial de Qt para Python; la versión fijada es 6.11.2. La interfaz incluye selección de fuente, arrastrar y soltar video local, vista previa, sliders de recorte/rango y exportación.
+
 ## Qué hace
 
 - Acepta enlaces de YouTube.
@@ -28,11 +32,15 @@ app/
 │   ├── pipeline.py
 │   └── workspace.py
 ├── ui/
-│   └── main_window.py
+│   ├── launcher.py
+│   ├── controller.py
+│   └── qml/
+│       ├── Main.qml
+│       └── components/
 └── main.py
 ```
 
-La interfaz no contiene la lógica de procesamiento. El núcleo no conoce Tkinter y puede probarse de forma independiente.
+La interfaz está hecha con Qt 6 + QML mediante PySide6. El núcleo no conoce Qt/QML y puede probarse de forma independiente.
 
 ## Instalación
 
@@ -51,7 +59,7 @@ python -m app.main
 build_extractor.bat
 ```
 
-Genera `dist\\ExtractorPartituras.exe`. `yt-dlp` y CustomTkinter se incluyen en el empaquetado.
+Genera `dist\\ExtractorPartituras.exe`. PySide6/Qt 6, la interfaz QML y `yt-dlp` se incluyen en el empaquetado.
 
 ## Pruebas
 

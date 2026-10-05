@@ -7,7 +7,7 @@ echo   Extractor de Partituras - Build
 echo ============================================
 echo.
 
-if not exist venv (
+if not exist venv\Scripts\python.exe (
     python -m venv venv
     if errorlevel 1 goto :error
 )
@@ -23,7 +23,7 @@ if errorlevel 1 goto :error
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 
-python -m PyInstaller --noconfirm --clean --onefile --windowed --name ExtractorPartituras --icon icon.ico --collect-all customtkinter --collect-all yt_dlp app\main.py
+python -m PyInstaller --noconfirm --clean --onefile --windowed --name ExtractorPartituras --icon icon.ico --collect-all PySide6 --collect-all yt_dlp --add-data "app\ui\qml;app\ui\qml" app\main.py
 if errorlevel 1 goto :error
 
 echo.
