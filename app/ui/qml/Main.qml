@@ -23,6 +23,30 @@ ApplicationWindow {
     title: "ScoreCapture — Extractor de Partituras"
     color: "#0a0f18"
 
+    Dialog {
+        id: errorDialog
+        modal: true
+        title: "No se pudo completar la operación"
+        standardButtons: Dialog.Ok
+        width: 520
+        property string message: ""
+
+        contentItem: Label {
+            text: errorDialog.message
+            color: "#dbe5f2"
+            wrapMode: Text.WordWrap
+            padding: 18
+        }
+    }
+
+    Connections {
+        target: backend
+        function onError(message) {
+            errorDialog.message = message
+            errorDialog.open()
+        }
+    }
+
     RowLayout {
         anchors.fill: parent
         spacing: 0
