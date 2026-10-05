@@ -3,7 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from threading import Event, Thread
 
-from PySide6.QtCore import QDesktopServices, QObject, Property, QUrl, Signal, Slot
+from PySide6.QtCore import QObject, Property, QUrl, Signal, Slot
+from PySide6.QtGui import QDesktopServices
 
 from app.core.models import ExtractionSettings, PreparationResult
 from app.core.pipeline import ExtractionPipeline
