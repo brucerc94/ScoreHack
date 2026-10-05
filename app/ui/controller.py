@@ -595,6 +595,7 @@ class AppController(QObject):
             except InterruptedError:
                 self._events.put(("cancelled", None))
             except Exception as exc:
+                logger.exception("Operación de extracción fallida")
                 self._events.put(("error", str(exc)))
             finally:
                 self._events.put(("worker_finished", None))
