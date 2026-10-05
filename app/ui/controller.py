@@ -4,7 +4,7 @@ from pathlib import Path
 from queue import Empty, Queue
 from threading import Event, Thread
 
-from PySide6.QtCore import QObject, Property, QTimer, Signal, Slot
+from PySide6.QtCore import QObject, Property, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
 
 from app.core.models import ExtractionSettings, PreparationResult
