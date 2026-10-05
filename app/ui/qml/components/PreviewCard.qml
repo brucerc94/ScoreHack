@@ -313,7 +313,7 @@ Rectangle {
                                 Slider {
                                     id: seamSlider
                                     Layout.fillWidth: true
-                                    from: Math.max(8, Math.round(backend.montageFrameWidth * 0.05))
+                                    from: 0
                                     to: Math.max(16, Math.round(backend.montageFrameWidth * 0.70))
                                     value: modelData.overlap
                                     enabled: backend.montageFrameWidth > 0 && !backend.montageBusy
