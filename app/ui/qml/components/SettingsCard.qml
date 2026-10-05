@@ -270,7 +270,7 @@ Rectangle {
                     }
 
                     Label {
-                        text: "Elige cuántos secmentos van en cada página."
+                        text: "Choose how many segments go on each page."
                         color: "#687991"
                         font.pixelSize: 10
                         wrapMode: Text.WordWrap
