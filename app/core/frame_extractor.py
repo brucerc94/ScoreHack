@@ -22,7 +22,7 @@ def inspect_video(video_path: Path) -> VideoInfo:
     capture.release()
 
     if fps <= 0 or total_frames <= 0:
-        raise RuntimeError("El video no reporta FPS o frames válidos.")
+        raise RuntimeError("The video does not report valid FPS or frame count.")
 
     return VideoInfo(fps, total_frames, width, height, total_frames / fps)
 
@@ -34,7 +34,7 @@ def extract_frames(
     on_progress: ProgressCallback | None = None,
 ) -> tuple[Path, ...]:
     if interval_seconds <= 0:
-        raise ValueError("El intervalo debe ser mayor que 0 segundos.")
+        raise ValueError("The interval must be greater than 0 seconds.")
 
     info = inspect_video(video_path)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -42,7 +42,7 @@ def extract_frames(
 
     capture = cv2.VideoCapture(str(video_path))
     if not capture.isOpened():
-        raise RuntimeError("No se pudo abrir el video para extraer frames.")
+        raise RuntimeError("Could not open the video for frame extraction.")
 
     paths: list[Path] = []
     frame_index = 0
@@ -56,16 +56,16 @@ def extract_frames(
             if frame_index >= next_capture:
                 target = output_dir / f"frame_{len(paths):05d}.jpg"
                 if not cv2.imwrite(str(target), frame, [cv2.IMWRITE_JPEG_QUALITY, 95]):
-                    raise RuntimeError(f"No se pudo guardar el frame {target.name}.")
+                    raise RuntimeError(f"Could not save frame {target.name}.")
                 paths.append(target)
                 next_capture += step_frames
 
             frame_index += 1
             if on_progress:
-                on_progress(frame_index / max(1, info.total_frames), "Extrayendo fotogramas…")
+                on_progress(frame_index / max(1, info.total_frames), "Extracting frames…")
     finally:
         capture.release()
 
     if not paths:
-        raise RuntimeError("No se extrajo ningún fotograma del video.")
+        raise RuntimeError("No frames were extracted from the video.")
     return tuple(paths)
