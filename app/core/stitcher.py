@@ -83,6 +83,13 @@ def _estimate_translation(
     return float(matrix[0, 2]), float(matrix[1, 2])
 
 
+def _overlap_width(left_width: int, right_width: int, tx: float) -> float:
+    return max(
+        0.0,
+        min(float(left_width), tx + right_width) - max(0.0, tx),
+    )
+
+
 def _merge(left: np.ndarray, right: np.ndarray, tx: float, ty: float) -> np.ndarray:
     left_height, left_width = left.shape[:2]
     right_height, right_width = right.shape[:2]
@@ -168,7 +175,7 @@ def stitch_horizontal(
             )
 
         tx, ty = transform
-        overlap = panorama.shape[1] - tx
+        overlap = _overlap_width(panorama.shape[1], image.shape[1], tx)
         if overlap < min(panorama.shape[1], image.shape[1]) * 0.05:
             raise RuntimeError(
                 f"El solape entre los frames {index} y {index + 1} es insuficiente."
