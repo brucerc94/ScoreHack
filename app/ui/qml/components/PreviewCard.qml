@@ -322,36 +322,21 @@ Rectangle {
 
                 ListView {
                     id: joinList
-                    property real preservedContentY: 0
-                    property bool restoringContentY: false
-
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
                     spacing: 4
-                    model: backend.joinItems
+                    model: backend.joinCount
                     boundsBehavior: Flickable.StopAtBounds
-
-                    onContentYChanged: {
-                        if (!restoringContentY)
-                            preservedContentY = contentY
-                    }
-
-                    onModelChanged: {
-                        restoringContentY = true
-                        Qt.callLater(function() {
-                            var maximum = Math.max(0, contentHeight - height)
-                            contentY = Math.min(preservedContentY, maximum)
-                            restoringContentY = false
-                        })
-                    }
 
                     delegate: Rectangle {
                         width: joinList.width
                         height: 48
                         radius: 7
                         color: "#111a28"
-                        border.color: modelData.manual ? "#315f91" : "#1b2a3f"
+                        border.color: backend.joinIsManual(index)
+                                      ? "#315f91"
+                                      : "#1b2a3f"
 
                         RowLayout {
                             anchors.fill: parent
@@ -361,7 +346,7 @@ Rectangle {
 
                             Label {
                                 Layout.preferredWidth: 98
-                                text: modelData.label
+                                text: backend.joinLabel(index)
                                 color: "#dbe5f2"
                                 font.pixelSize: 10
                                 font.bold: true
@@ -372,13 +357,14 @@ Rectangle {
                                 id: seamSlider
                                 Layout.fillWidth: true
                                 from: 0
-                                to: Math.max(16, Math.round(backend.montageFrameWidth * 0.70))
-                                value: modelData.overlap
-                                enabled: backend.montageFrameWidth > 0 && !backend.montageBusy
-                                onPressedChanged: {
-                                    if (!pressed)
-                                        backend.setJoinOverlap(modelData.join, value)
-                                }
+                                to: Math.max(
+                                    16,
+                                    Math.round(backend.montageFrameWidth * 0.70)
+                                )
+                                value: backend.joinOverlap(index)
+                                enabled: backend.montageFrameWidth > 0
+                                         && !backend.montageBusy
+                                onMoved: backend.setJoinOverlap(index, value)
                             }
 
                             ColumnLayout {
@@ -392,10 +378,14 @@ Rectangle {
                                 }
 
                                 Label {
-                                    text: modelData.manual
+                                    text: backend.joinIsManual(index)
                                           ? "Manual"
-                                          : (modelData.autoReliable ? "Auto" : "Ajustar")
-                                    color: modelData.manual ? "#7aaef2" : "#71839c"
+                                          : (backend.joinAutoReliable(index)
+                                                ? "Auto"
+                                                : "Ajustar")
+                                    color: backend.joinIsManual(index)
+                                           ? "#7aaef2"
+                                           : "#71839c"
                                     font.pixelSize: 8
                                 }
                             }
@@ -405,11 +395,11 @@ Rectangle {
                                 Layout.preferredHeight: 24
                                 text: "Auto"
                                 enabled: !backend.montageBusy
-                                onClicked: backend.resetJoinOverlap(modelData.join)
+                                onClicked: backend.resetJoinOverlap(index)
                             }
                         }
                     }
-                }
+                }                }
             }
         }
 
