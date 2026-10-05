@@ -352,6 +352,7 @@ class AppController(QObject):
         if not self._selected_frames:
             return
         self._selected_frames.clear()
+        self.clearLayoutCuts()
         self._reset_montage_state()
         self._emit_selection_state()
 
