@@ -17,7 +17,7 @@ La aplicación usa **Qt 6 + QML** para una interfaz fluida y moderna. PySide6 es
 - Permite definir el rango de frames a procesar.
 - Permite abrir una vista previa temporal del PDF antes de guardarlo.
 - Permite seleccionar manualmente frames concretos y ver en la UI la secuencia elegida.
-- Permite unir frames horizontalmente para reconstruir partituras con desplazamiento lateral y ver el montaje en vivo antes de exportarlo a A4 apaisado.
+- Permite unir frames horizontalmente de forma manual, mostrándolos lado a lado en la UI y previsualizando la unión antes de exportarla a A4 apaisado.
 - Elimina frames consecutivos visualmente repetidos mediante SSIM después de estabilizarlos.
 - Genera páginas A4 con una cantidad configurable de partituras por página.
 - Guarda únicamente el PDF final en la ruta elegida.
