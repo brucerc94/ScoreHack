@@ -5,36 +5,37 @@ import QtQuick.Layouts
 Rectangle {
     id: root
     Layout.fillWidth: true
-    Layout.preferredHeight: 135
-    radius: 16
+    Layout.preferredHeight: 88
+    radius: 14
     color: "#111827"
     border.color: "#1d2a3c"
 
-    ColumnLayout {
+    RowLayout {
         anchors.fill: parent
-        anchors.margins: 18
-        spacing: 8
+        anchors.margins: 14
+        spacing: 14
 
-        RowLayout {
-            Layout.fillWidth: true
+        ColumnLayout {
+            Layout.preferredWidth: 150
+            spacing: 3
 
             Label {
                 text: "Actividad"
                 color: "#f4f7fb"
-                font.pixelSize: 16
+                font.pixelSize: 14
                 font.bold: true
             }
 
-            Item { Layout.fillWidth: true }
-
             Label {
                 text: Math.round(backend.progress * 100) + "%"
-                color: "#71829a"
+                color: "#70819a"
+                font.pixelSize: 11
             }
         }
 
         ProgressBar {
-            Layout.fillWidth: true
+            Layout.preferredWidth: 190
+            Layout.preferredHeight: 8
             value: backend.progress
         }
 
@@ -46,9 +47,9 @@ Rectangle {
             TextArea {
                 id: logArea
                 readOnly: true
-                wrapMode: TextArea.Wrap
-                color: "#8998ad"
-                font.pixelSize: 11
+                wrapMode: TextArea.NoWrap
+                color: "#8190a8"
+                font.pixelSize: 10
                 background: Rectangle { color: "transparent" }
             }
         }
@@ -57,7 +58,9 @@ Rectangle {
     Connections {
         target: backend
         function onLogMessage(message) {
-            logArea.text += message + "\n"
+            logArea.text += message + "
+"
+            logArea.cursorPosition = logArea.length
         }
     }
 }
