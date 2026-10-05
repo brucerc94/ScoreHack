@@ -13,6 +13,7 @@ from .models import ExtractionSettings, PreparationResult
 from .motion_tracker import stabilize_frames
 from .overlay_cleaner import remove_transient_overlays
 from .pdf_exporter import export_pdf
+from .stitcher import stitch_horizontal
 from .workspace import Workspace
 
 EventCallback = Callable[[str, object], None]
@@ -76,29 +77,51 @@ class ExtractionPipeline:
         )
         self._check_cancel(cancel_event)
 
-        # El usuario todavía no ha definido el recorte en esta etapa. El seguimiento
-        # se ejecuta durante generate(), usando el recorte que haya seleccionado.
         self.video_path = video_path
         self.frame_paths = frames
         result = PreparationResult(video_path, frames, info)
         self._emit("prepared", result)
         return result
 
-    def _build_unique_images(
+    def _selected_frames(
+        self,
+        settings: ExtractionSettings,
+    ) -> tuple[Path, ...]:
+        start = settings.start_frame
+        end = len(self.frame_paths) - 1 if settings.end_frame is None else min(
+            settings.end_frame,
+            len(self.frame_paths) - 1,
+        )
+        candidates = self.frame_paths[start : end + 1]
+        if not settings.selected_frames:
+            return candidates
+
+        invalid = [index for index in settings.selected_frames if index >= len(self.frame_paths)]
+        if invalid:
+            raise ValueError("La selección manual contiene frames fuera del video.")
+        selected = tuple(
+            self.frame_paths[index]
+            for index in settings.selected_frames
+            if start <= index <= end
+        )
+        if not selected:
+            raise ValueError("Ningún frame seleccionado está dentro del rango.")
+        return selected
+
+    def _prepare_images(
         self,
         settings: ExtractionSettings,
         cancel_event: Event | None = None,
     ) -> tuple[Path, ...]:
-        if not self.frame_paths:
-            raise RuntimeError("Primero debes analizar un video.")
+        candidates = self._selected_frames(settings)
 
-        self._check_cancel(cancel_event)
-
-        working_frames = self.frame_paths
-        if settings.stabilize_motion:
+        # En un montaje horizontal conservamos el desplazamiento lateral. Estabilizar
+        # contra una referencia global lo eliminaría y arruinaría el stitching.
+        working_frames = candidates
+        if settings.stabilize_motion and settings.layout_mode == "individual":
             self._emit("status", "Siguiendo movimiento dentro del recorte seleccionado…")
             working_frames = stabilize_frames(
-                self.frame_paths,
+                candidates,
                 self.workspace.aligned,
                 crop_top=settings.crop_top,
                 crop_bottom=settings.crop_bottom,
@@ -113,16 +136,15 @@ class ExtractionPipeline:
             self.workspace.crops,
             settings.crop_top,
             settings.crop_bottom,
-            settings.start_frame,
-            settings.end_frame,
-            lambda p, m: self._emit("progress", (p, m)),
+            start_index=0,
+            end_index=None,
+            on_progress=lambda p, m: self._emit("progress", (p, m)),
         )
         self._check_cancel(cancel_event)
 
-        working_crops = cropped
         if settings.remove_overlays:
             self._emit("status", "Quitando resaltadores y cursores móviles…")
-            working_crops = remove_transient_overlays(
+            cropped = remove_transient_overlays(
                 cropped,
                 self.workspace.cleaned,
                 on_progress=lambda p, m: self._emit("progress", (p, m)),
@@ -130,9 +152,20 @@ class ExtractionPipeline:
             )
             self._check_cancel(cancel_event)
 
+        if settings.layout_mode == "horizontal":
+            if len(cropped) < 2:
+                raise ValueError("El montaje horizontal necesita al menos 2 frames seleccionados.")
+            self._emit("status", "Uniendo frames horizontalmente…")
+            montage = stitch_horizontal(
+                cropped,
+                self.workspace.montages / "montaje_horizontal.jpg",
+                on_progress=lambda p, m: self._emit("progress", (p, m)),
+            )
+            return (montage,)
+
         self._emit("status", "Eliminando fotogramas repetidos…")
         unique = remove_consecutive_duplicates(
-            working_crops,
+            cropped,
             settings.duplicate_threshold,
             lambda p, m: self._emit("progress", (p, m)),
         )
@@ -147,10 +180,10 @@ class ExtractionPipeline:
         output_pdf: Path,
         cancel_event: Event | None = None,
     ) -> Path:
-        unique = self._build_unique_images(settings, cancel_event)
+        images = self._prepare_images(settings, cancel_event)
         self._emit("status", "Generando PDF…")
         output = export_pdf(
-            unique,
+            images,
             output_pdf,
             sheets_per_page=settings.sheets_per_page,
             page_size=settings.page_size,
