@@ -14,8 +14,8 @@ ApplicationWindow {
     height: 950
     minimumWidth: 1080
     maximumWidth: 1080
-    minimumHeight: 950
-    maximumHeight: 950
+    minimumHeight: 1080
+    maximumHeight: 1080
 
     flags: Qt.Window
            | Qt.WindowTitleHint
@@ -78,7 +78,7 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 500
+                    Layout.preferredHeight: 600
                     spacing: 14
 
                     PreviewCard {
@@ -90,7 +90,7 @@ ApplicationWindow {
                 }
 
                 ActivityCard {
-                    Layout.preferredHeight: 160
+                    Layout.preferredHeight: 135
                 }
 
                 Item { Layout.preferredHeight: 10 }
