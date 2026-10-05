@@ -15,6 +15,7 @@ class ExtractionSettings:
     sheets_per_page: int = 4
     page_size: str = "A4"
     margin_pt: float = 28.0
+    stabilize_motion: bool = True
 
     def validate(self) -> None:
         if self.interval_seconds <= 0:
