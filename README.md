@@ -13,7 +13,6 @@
 [![PySide6](https://img.shields.io/badge/PySide6-6.11-41CD52?logo=qt&logoColor=white)](https://doc.qt.io/qtforpython/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.x-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/brucerc94/ExtractorPartiturasYoutube/tests.yml?branch=main&label=CI)](.github/workflows/tests.yml)
 
 ScoreCapture is a Windows-focused desktop application for turning sheet music displayed in YouTube videos or local video files into clean, printable PDF pages.
 
