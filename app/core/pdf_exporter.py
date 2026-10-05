@@ -68,7 +68,6 @@ def _horizontal_page_scale(
     sizes: Sequence[tuple[int, int]],
     usable_width: float,
     usable_height: float,
-    segments_per_page: int,
 ) -> float:
     group = sizes[:segments_per_page]
     if not group:
@@ -114,7 +113,6 @@ def _draw_horizontal_pages(
             group_sizes,
             usable_width,
             usable_height,
-            segments_per_page,
         )
 
         system_width = usable_width * scale
