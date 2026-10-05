@@ -13,7 +13,7 @@ ProgressCallback = Callable[[float, str], None]
 def inspect_video(video_path: Path) -> VideoInfo:
     capture = cv2.VideoCapture(str(video_path))
     if not capture.isOpened():
-        raise RuntimeError(f"No se pudo abrir el video: {video_path}")
+        raise RuntimeError(f"Could not open video: {video_path}")
 
     fps = float(capture.get(cv2.CAP_PROP_FPS))
     total_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
