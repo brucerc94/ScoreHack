@@ -278,15 +278,6 @@ Rectangle {
                     onActivated: backend.setLayoutMode(currentIndex === 1 ? "horizontal" : "individual")
                 }
 
-                Label {
-                    visible: backend.layoutMode === "horizontal"
-                    text: "La selección manual controla los frames y cada unión."
-                    color: "#687991"
-                    font.pixelSize: 10
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-
                 ColumnLayout {
                     visible: backend.layoutMode === "individual"
                     Layout.fillWidth: true
@@ -339,6 +330,126 @@ Rectangle {
                     }
                 }
 
+                ColumnLayout {
+                    visible: backend.layoutMode === "horizontal"
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Label {
+                        text: "Distribución de la partitura"
+                        color: "#a9b6c9"
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
+
+                    Label {
+                        text: "Elige cuántos segmentos van en cada página."
+                        color: "#687991"
+                        font.pixelSize: 10
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+
+                    ComboBox {
+                        id: horizontalPagesCombo
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 38
+                        model: ["1", "2", "3", "4"]
+                        currentIndex: 0
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Label {
+                            text: "Cortes: " + backend.layoutCutCount
+                            color: "#dbe5f2"
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        Button {
+                            Layout.preferredWidth: 92
+                            Layout.preferredHeight: 30
+                            text: "Limpiar"
+                            enabled: backend.layoutCutCount > 0 && !backend.busy
+                            onClicked: backend.clearLayoutCuts()
+                        }
+                    }
+
+                    ListView {
+                        id: cutList
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Math.min(
+                            150,
+                            Math.max(40, backend.layoutCutCount * 42)
+                        )
+                        clip: true
+                        spacing: 4
+                        model: backend.layoutCutCount
+                        boundsBehavior: Flickable.StopAtBounds
+
+                        delegate: Rectangle {
+                            width: cutList.width
+                            height: 38
+                            radius: 7
+                            color: "#111a28"
+                            border.color: "#1b2a3f"
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 8
+                                spacing: 6
+
+                                Label {
+                                    Layout.preferredWidth: 48
+                                    text: "Corte " + (index + 1)
+                                    color: "#cbd5e3"
+                                    font.pixelSize: 9
+                                    font.bold: true
+                                }
+
+                                Slider {
+                                    id: cutSlider
+                                    Layout.fillWidth: true
+                                    from: 2
+                                    to: 98
+                                    value: backend.layoutCutPercent(index)
+                                    enabled: !backend.busy
+                                    onMoved: backend.setLayoutCut(index, value / 100.0)
+                                }
+
+                                Label {
+                                    Layout.preferredWidth: 38
+                                    text: Math.round(cutSlider.value) + "%"
+                                    color: "#7c8da4"
+                                    font.pixelSize: 9
+                                }
+
+                                Button {
+                                    Layout.preferredWidth: 24
+                                    Layout.preferredHeight: 24
+                                    text: "×"
+                                    enabled: !backend.busy
+                                    onClicked: backend.removeLayoutCut(index)
+                                }
+                            }
+                        }
+                    }
+
+                    Label {
+                        text: backend.layoutCutCount === 0
+                              ? "También puedes agregar un corte desde la vista de reconstrucción."
+                              : "Ajusta los cortes aquí o arrastra sus líneas sobre la reconstrucción."
+                        color: "#687991"
+                        font.pixelSize: 9
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                }
                 Item { Layout.preferredHeight: 6 }
             }
         }
