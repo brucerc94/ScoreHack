@@ -126,6 +126,7 @@ class ExtractionPipeline:
                 cropped,
                 self.workspace.cleaned,
                 on_progress=lambda p, m: self._emit("progress", (p, m)),
+                cancel_event=cancel_event,
             )
             self._check_cancel(cancel_event)
 
