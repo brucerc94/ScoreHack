@@ -20,7 +20,7 @@ Rectangle {
             spacing: 3
 
             Label {
-                text: "Actividad"
+                text: "Activity"
                 color: "#f4f7fb"
                 font.pixelSize: 14
                 font.bold: true
