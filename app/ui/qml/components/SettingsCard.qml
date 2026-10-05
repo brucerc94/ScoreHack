@@ -14,7 +14,7 @@ Rectangle {
 
     FileDialog {
         id: pdfDialog
-        title: "Guardar PDF"
+        title: "Save PDF"
         nameFilters: ["PDF (*.pdf)"]
         fileMode: FileDialog.SaveFile
         onAccepted: {
@@ -46,14 +46,14 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             Label {
-                text: "Ajustes"
+                text: "Settings"
                 color: "#f4f7fb"
                 font.pixelSize: 18
                 font.bold: true
             }
             Item { Layout.fillWidth: true }
             Label {
-                text: backend.layoutMode === "horizontal" ? "RECONSTRUCCIÓN" : "INDIVIDUAL"
+                text: backend.layoutMode === "horizontal" ? "RECONSTRUCTION" : "INDIVIDUAL"
                 color: "#6f86a5"
                 font.pixelSize: 9
                 font.bold: true
@@ -61,7 +61,7 @@ Rectangle {
         }
 
         Label {
-            text: "Recorte"
+            text: "Crop"
             color: "#a9b6c9"
             font.pixelSize: 12
             font.bold: true
@@ -81,14 +81,14 @@ Rectangle {
                 spacing: 6
 
                 Label {
-                    text: "Zona útil de la partitura"
+                    text: "Usable score area"
                     color: "#dbe5f2"
                     font.pixelSize: 11
                     font.bold: true
                 }
 
                 Label {
-                    text: "Superior: " + backend.cropTop + " px"
+                    text: "Top: " + backend.cropTop + " px"
                     color: "#70819a"
                     font.pixelSize: 10
                 }
@@ -104,7 +104,7 @@ Rectangle {
                 }
 
                 Label {
-                    text: "Inferior: " + backend.cropBottom + " px"
+                    text: "Bottom: " + backend.cropBottom + " px"
                     color: "#70819a"
                     font.pixelSize: 10
                 }
@@ -134,7 +134,7 @@ Rectangle {
                 spacing: 9
 
                 Label {
-                    text: "Captura"
+                    text: "Capture"
                     color: "#a9b6c9"
                     font.pixelSize: 12
                     font.bold: true
@@ -154,7 +154,7 @@ Rectangle {
                         spacing: 5
 
                         Label {
-                            text: "Intervalo entre frames"
+                            text: "Frame interval"
                             color: "#dbe5f2"
                             font.pixelSize: 12
                             font.bold: true
@@ -177,12 +177,12 @@ Rectangle {
                                     border.color: "#263752"
                                 }
                             }
-                            Label { text: "seg"; color: "#71829a"; font.pixelSize: 11 }
+                            Label { text: "sec"; color: "#71829a"; font.pixelSize: 11 }
                         }
                     }
                 }
                 Label {
-                    text: "Salida"
+                    text: "Output"
                     color: "#a9b6c9"
                     font.pixelSize: 12
                     font.bold: true
@@ -190,7 +190,7 @@ Rectangle {
                 }
 
                 Label {
-                    text: "Modo"
+                    text: "Mode"
                     color: "#687991"
                     font.pixelSize: 10
                 }
@@ -199,7 +199,7 @@ Rectangle {
                     id: layoutCombo
                     Layout.fillWidth: true
                     Layout.preferredHeight: 38
-                    model: ["Individual", "Unión horizontal"]
+                    model: ["Individual", "Horizontal join"]
                     currentIndex: backend.layoutMode === "horizontal" ? 1 : 0
                     enabled: !backend.busy
                     onActivated: backend.setLayoutMode(currentIndex === 1 ? "horizontal" : "individual")
@@ -211,7 +211,7 @@ Rectangle {
                     spacing: 7
 
                     Label {
-                        text: "Rango de frames"
+                        text: "Frame range"
                         color: "#687991"
                         font.pixelSize: 10
                     }
@@ -242,7 +242,7 @@ Rectangle {
                     }
 
                     Label {
-                        text: "Partituras por página"
+                        text: "Scores per page"
                         color: "#687991"
                         font.pixelSize: 10
                         Layout.topMargin: 2
@@ -263,14 +263,14 @@ Rectangle {
                     spacing: 8
 
                     Label {
-                        text: "Distribución de la partitura"
+                        text: "Score layout"
                         color: "#a9b6c9"
                         font.pixelSize: 12
                         font.bold: true
                     }
 
                     Label {
-                        text: "Elige cuántos segmentos van en cada página."
+                        text: "Elige cuántos secmentos van en cada página."
                         color: "#687991"
                         font.pixelSize: 10
                         wrapMode: Text.WordWrap
@@ -289,7 +289,7 @@ Rectangle {
                         Layout.fillWidth: true
 
                         Label {
-                            text: "Cortes: " + backend.layoutCutCount
+                            text: "Cuts: " + backend.layoutCutCount
                             color: "#dbe5f2"
                             font.pixelSize: 11
                             font.bold: true
@@ -300,7 +300,7 @@ Rectangle {
                         Button {
                             Layout.preferredWidth: 92
                             Layout.preferredHeight: 30
-                            text: "Limpiar"
+                            text: "Clear"
                             enabled: backend.layoutCutCount > 0 && !backend.busy
                             onClicked: backend.clearLayoutCuts()
                         }
@@ -333,7 +333,7 @@ Rectangle {
 
                                 Label {
                                     Layout.preferredWidth: 48
-                                    text: "Corte " + (index + 1)
+                                    text: "Cut " + (index + 1)
                                     color: "#cbd5e3"
                                     font.pixelSize: 9
                                     font.bold: true
@@ -369,8 +369,8 @@ Rectangle {
 
                     Label {
                         text: backend.layoutCutCount === 0
-                              ? "También puedes agregar un corte desde la vista de reconstrucción."
-                              : "Ajusta los cortes aquí o arrastra sus líneas sobre la reconstrucción."
+                              ? "You can also add a cut directly from the reconstruction view."
+                              : "Adjust the cuts here or drag their lines on the reconstruction."
                         color: "#687991"
                         font.pixelSize: 9
                         wrapMode: Text.WordWrap
@@ -388,7 +388,7 @@ Rectangle {
             Button {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 44
-                text: "Vista previa"
+                text: "Preview"
                 enabled: backend.frameCount > 0 && !backend.busy
                 onClicked: backend.preview(root.pagesPerPage())
             }
@@ -396,7 +396,7 @@ Rectangle {
             Button {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 44
-                text: "Generar PDF"
+                text: "Generate PDF"
                 enabled: backend.frameCount > 0 && !backend.busy
                 onClicked: pdfDialog.open()
             }
