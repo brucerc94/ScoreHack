@@ -12,7 +12,7 @@ ProgressCallback = Callable[[float, str], None]
 def _signature(path: Path) -> object:
     image = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
     if image is None:
-        raise RuntimeError(f"No se pudo leer {path.name}.")
+        raise RuntimeError(f"Could not read {path.name}.")
     return cv2.resize(image, (320, 180), interpolation=cv2.INTER_AREA)
 
 
@@ -22,7 +22,7 @@ def remove_consecutive_duplicates(
     on_progress: ProgressCallback | None = None,
 ) -> tuple[Path, ...]:
     if not 0.0 < threshold <= 1.0:
-        raise ValueError("El umbral de duplicados debe estar entre 0 y 1.")
+        raise ValueError("Duplicate threshold must be between 0 and 1.")
 
     paths = list(image_paths)
     if not paths:
@@ -38,6 +38,6 @@ def remove_consecutive_duplicates(
             unique.append(path)
             previous = current
         if on_progress:
-            on_progress((index + 1) / len(paths), "Eliminando fotogramas repetidos…")
+            on_progress((index + 1) / len(paths), "Removing duplicate frames…")
 
     return tuple(unique)
