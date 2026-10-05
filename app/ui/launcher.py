@@ -17,7 +17,7 @@ def run() -> int:
     QQuickStyle.setStyle("Basic")
     app = QGuiApplication(sys.argv)
     app.setApplicationName("ScoreCapture")
-    app.setOrganizationName("Bruno Rivas")
+    app.setOrganizationName("ScoreCapture")
 
     icon = Path(__file__).resolve().parents[2] / "icon.ico"
     if icon.exists():
