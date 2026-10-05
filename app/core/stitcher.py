@@ -75,7 +75,8 @@ def _match_overlap(left: np.ndarray, right: np.ndarray) -> tuple[int, float]:
             estimates.append((int(round(overlap)), float(score)))
 
     if not estimates:
-        raise RuntimeError("No se encontró una zona de solape válida entre los frames.")
+        fallback = max(8, int(left_width * 0.20))
+        return fallback, 0.0
 
     best_overlap, best_score = max(estimates, key=lambda item: item[1])
 
@@ -87,9 +88,7 @@ def _match_overlap(left: np.ndarray, right: np.ndarray) -> tuple[int, float]:
         confidence = max(0.0, min(1.0, best_score))
 
     if best_score < 0.35 or confidence < 0.45:
-        raise RuntimeError(
-            f"El solape automático no es confiable (confianza {confidence:.0%})."
-        )
+        return max(8, int(left_width * 0.20)), 0.0
 
     return best_overlap, confidence
 
