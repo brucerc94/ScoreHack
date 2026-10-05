@@ -19,7 +19,7 @@ def is_youtube_url(value: str) -> bool:
 
 def download_youtube(url: str, output_path: Path, on_progress: ProgressCallback | None = None) -> Path:
     if not is_youtube_url(url):
-        raise ValueError("La URL no parece ser un enlace válido de YouTube.")
+        raise ValueError("The URL does not look like a valid YouTube link.")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -30,9 +30,9 @@ def download_youtube(url: str, output_path: Path, on_progress: ProgressCallback 
             total = data.get("total_bytes") or data.get("total_bytes_estimate") or 0
             downloaded = data.get("downloaded_bytes", 0)
             progress = downloaded / total if total else 0.0
-            on_progress(progress, "Descargando video de YouTube…")
+            on_progress(progress, "Downloading YouTube video…")
         elif data.get("status") == "finished":
-            on_progress(1.0, "Descarga completada.")
+            on_progress(1.0, "Download completed.")
 
     options = {
         "format": "best[ext=mp4]/best",
@@ -47,7 +47,7 @@ def download_youtube(url: str, output_path: Path, on_progress: ProgressCallback 
         with yt_dlp.YoutubeDL(options) as ydl:
             ydl.download([url])
     except yt_dlp.utils.DownloadError as exc:
-        raise RuntimeError(f"No se pudo descargar el video: {exc}") from exc
+        raise RuntimeError(f"Could not download the video: {exc}") from exc
 
     candidates = sorted(
         output_path.parent.glob(f"{output_path.stem}.*"),
@@ -58,4 +58,4 @@ def download_youtube(url: str, output_path: Path, on_progress: ProgressCallback 
         if candidate.suffix not in {".part", ".ytdl"} and candidate.is_file():
             return candidate
 
-    raise RuntimeError("yt-dlp terminó sin generar el archivo de video.")
+    raise RuntimeError("yt-dlp finished without producing a video file.")
