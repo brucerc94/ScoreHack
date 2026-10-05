@@ -410,7 +410,8 @@ class AppController(QObject):
         self._montage_pipeline.frame_paths = self._frame_paths
 
         self._montage_cancel_event.set()
-        self._montage_cancel_event = Event()
+        montage_cancel_event = Event()
+        self._montage_cancel_event = montage_cancel_event
         self._montage_generation += 1
         generation = self._montage_generation
 
@@ -427,7 +428,7 @@ class AppController(QObject):
                 self._montage_pipeline.preview_montage(
                     settings,
                     output,
-                    cancel_event=self._montage_cancel_event,
+                    cancel_event=montage_cancel_event,
                 )
             except InterruptedError:
                 self._events.put(("montage_cancelled", generation))
