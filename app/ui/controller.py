@@ -183,7 +183,7 @@ class AppController(QObject):
     @Property(str, notify=selectionChanged)
     def selectionSummary(self) -> str:
         if not self._selected_frames:
-            return "Sin frames seleccionados"
+            return "No frames selected"
         numbers = ", ".join(str(index + 1) for index in self._selected_frames)
         return f"{len(self._selected_frames)} frames: {numbers}"
 
@@ -370,7 +370,7 @@ class AppController(QObject):
         minimum_gap = 0.01
 
         if any(abs(position - cut) < minimum_gap for cut in self._layout_cuts):
-            self.error.emit("Ya existe un corte muy cerca de esa posición.")
+            self.error.emit("A cut already exists near that position.")
             return
 
         self._layout_cuts.append(position)
@@ -428,7 +428,7 @@ class AppController(QObject):
 
         self._set_busy(True)
         self._set_progress(0.0)
-        self._set_status("Analizando video…")
+        self._set_status("Analyzing video…")
         self.logMessage.emit("▶ Analyzing source…")
 
         self._pipeline = ExtractionPipeline(self._on_pipeline_event)
@@ -618,7 +618,7 @@ class AppController(QObject):
             self.error.emit(str(exc))
             return
 
-        self._start_operation("Generando vista previa…", "▶ Generando vista previa…")
+        self._start_operation("Generating preview…", "▶ Generating preview…")
         self._run(self._pipeline.preview, settings)
 
     @Slot(str, int)
@@ -636,7 +636,7 @@ class AppController(QObject):
         if output.suffix.lower() != ".pdf":
             output = output.with_suffix(".pdf")
 
-        self._start_operation("Generando PDF…", "▶ Generando PDF…")
+        self._start_operation("Generating PDF…", "▶ Generating PDF…")
         self._run(self._pipeline.generate, settings, output)
 
     @Slot()
@@ -659,7 +659,7 @@ class AppController(QObject):
             except InterruptedError:
                 self._events.put(("cancelled", None))
             except Exception as exc:
-                logger.exception("Operación de extracción fallida")
+                logger.exception("Extraction operation failed")
                 self._events.put(("error", str(exc)))
             finally:
                 self._events.put(("worker_finished", None))
@@ -727,7 +727,7 @@ class AppController(QObject):
         if generation != self._montage_generation:
             return
         if not isinstance(result, MontageResult):
-            self._handle_montage_error("La previsualización devolvió un resultado inválido.")
+            self._handle_montage_error("Preview returned an invalid result.")
             return
 
         self._auto_overlaps = result.auto_overlaps
@@ -740,7 +740,7 @@ class AppController(QObject):
         self._restart_pending_montage()
 
     def _handle_montage_error(self, message: str) -> None:
-        logger.error("Reconstrucción: %s", message)
+        logger.error("Reconstruction: %s", message)
         self._set_montage_busy(False)
         self.logMessage.emit(f"✕ Reconstruction: {message}")
         self._restart_pending_montage()
