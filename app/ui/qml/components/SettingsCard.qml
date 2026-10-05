@@ -90,7 +90,9 @@ Rectangle {
                     }
 
                     Label {
-                        text: "Sigue desplazamientos de cámara y partitura"
+                        text: backend.layoutMode === "horizontal"
+                              ? "Desactivado al unir horizontalmente para conservar el desplazamiento"
+                              : "Sigue desplazamientos de cámara y partitura"
                         color: "#687991"
                         font.pixelSize: 10
                         elide: Text.ElideRight
@@ -99,7 +101,7 @@ Rectangle {
 
                 Switch {
                     checked: backend.motionCorrection
-                    enabled: !backend.busy
+                    enabled: !backend.busy && backend.layoutMode === "individual"
                     onToggled: backend.setMotionCorrection(checked)
                 }
             }
@@ -142,6 +144,56 @@ Rectangle {
                     enabled: !backend.busy
                     onToggled: backend.setRemoveOverlays(checked)
                 }
+            }
+        }
+
+        Label {
+            text: "Modo de salida"
+            color: "#8290a6"
+            font.pixelSize: 12
+            Layout.topMargin: 5
+        }
+
+        ComboBox {
+            id: layoutCombo
+            Layout.fillWidth: true
+            Layout.preferredHeight: 34
+            model: ["Individual", "Unir horizontal"]
+            currentIndex: backend.layoutMode === "horizontal" ? 1 : 0
+            enabled: !backend.busy
+            onActivated: backend.setLayoutMode(currentIndex === 1 ? "horizontal" : "individual")
+        }
+
+        Label {
+            text: backend.layoutMode === "horizontal"
+                  ? "Selecciona frames manualmente para construir una partitura ancha."
+                  : backend.selectedFrameCount > 0
+                    ? "La selección manual reemplaza el rango de frames."
+                    : "Sin selección manual: se usa el rango indicado."
+            color: "#687991"
+            font.pixelSize: 10
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 38
+            radius: 8
+            color: "#0d1522"
+            border.color: "#1b2a3f"
+
+            Label {
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                verticalAlignment: Text.AlignVCenter
+                text: backend.selectedFrameCount > 0
+                      ? backend.selectionSummary
+                      : "Frames manuales: ninguno"
+                color: "#aebbd0"
+                elide: Text.ElideRight
+                font.pixelSize: 10
             }
         }
 
@@ -226,6 +278,7 @@ Rectangle {
         }
 
         Label {
+            visible: backend.layoutMode === "individual"
             text: "Partituras por página"
             color: "#8290a6"
             font.pixelSize: 12
@@ -234,6 +287,7 @@ Rectangle {
 
         ComboBox {
             id: pagesCombo
+            visible: backend.layoutMode === "individual"
             Layout.fillWidth: true
             Layout.preferredHeight: 34
             model: ["1", "2", "3", "4", "5", "6", "7", "8"]
