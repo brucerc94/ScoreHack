@@ -174,7 +174,8 @@ class ExtractionPipeline:
         output_path: Path,
         cancel_event: Event | None = None,
         require_selection: bool = True,
-    ) -> Path:
+        overlap_overrides: tuple[int, ...] = (),
+    ):
         if settings.layout_mode != "horizontal":
             raise ValueError("El montaje horizontal requiere el modo horizontal.")
 
@@ -192,6 +193,7 @@ class ExtractionPipeline:
         return stitch_horizontal(
             cropped,
             output_path,
+            overlap_overrides=overlap_overrides,
             on_progress=lambda p, m: self._emit("progress", (p, m)),
         )
 
@@ -205,6 +207,7 @@ class ExtractionPipeline:
                 settings,
                 self.workspace.montages / "montaje_horizontal.jpg",
                 cancel_event=cancel_event,
+                overlap_overrides=settings.overlap_overrides,
             )
             return (montage,)
 
@@ -273,6 +276,7 @@ class ExtractionPipeline:
             settings,
             output_path,
             cancel_event=cancel_event,
+            overlap_overrides=settings.overlap_overrides,
         )
         self._emit("montage_previewed", output)
         return output
