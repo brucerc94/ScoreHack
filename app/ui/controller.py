@@ -532,9 +532,7 @@ class AppController(QObject):
             start_frame=self._range_start,
             end_frame=self._range_end,
             sheets_per_page=sheets_per_page,
-            page_size=(
-                "A4_LANDSCAPE" if self._layout_mode == "horizontal" else "A4"
-            ),
+            page_size="A4",
             stabilize_motion=self._motion_correction,
             remove_overlays=self._remove_overlays,
             layout_mode=self._layout_mode,
