@@ -7,10 +7,9 @@ from typing import Callable, Iterable
 import cv2
 import numpy as np
 
-from .models import MontageResult
+from .models import AUTO_OVERLAP_MIN_CONFIDENCE, MontageResult
 
 ProgressCallback = Callable[[float, str], None]
-MIN_AUTO_CONFIDENCE = 0.78
 
 
 def _read(path: Path) -> np.ndarray:
@@ -196,7 +195,7 @@ def stitch_horizontal(
         if overlap_overrides and overlap_overrides[index] is not None
         else (
             auto_overlaps[index]
-            if confidences[index] >= MIN_AUTO_CONFIDENCE
+            if confidences[index] >= AUTO_OVERLAP_MIN_CONFIDENCE
             else 0
         )
         for index in range(len(auto_overlaps))
