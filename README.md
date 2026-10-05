@@ -11,9 +11,10 @@ La aplicación usa **Qt 6 + QML** para una interfaz fluida y moderna. PySide6 es
 - Acepta enlaces de YouTube.
 - Permite seleccionar un video local.
 - Extrae fotogramas cada N segundos sin cargar todos los frames en memoria.
+- Corrige automáticamente pequeños desplazamientos de cámara o de la partitura antes del recorte.
 - Permite previsualizar un frame y ajustar recorte superior e inferior.
 - Permite definir el rango de frames a procesar.
-- Elimina frames consecutivos visualmente repetidos mediante SSIM.
+- Elimina frames consecutivos visualmente repetidos mediante SSIM después de estabilizarlos.
 - Genera páginas A4 con una cantidad configurable de partituras por página.
 - Guarda únicamente el PDF final en la ruta elegida.
 - No necesita privilegios de administrador.
@@ -27,6 +28,7 @@ app/
 │   ├── deduplicator.py
 │   ├── downloader.py
 │   ├── frame_extractor.py
+│   ├── motion_tracker.py
 │   ├── models.py
 │   ├── pdf_exporter.py
 │   ├── pipeline.py
@@ -71,7 +73,7 @@ python -m pytest
 
 1. Selecciona **YouTube** o **Video local**.
 2. Pega la URL o pulsa **Subir video**.
-3. Pulsa **Analizar video**.
+3. Pulsa **Analizar video**. La corrección de movimiento está activada por defecto y puede desactivarse desde Ajustes.
 4. Ajusta recorte, frame de vista previa y rango.
 5. Define cuántas partituras deben caber por página.
 6. Pulsa **Generar PDF** y elige dónde guardarlo.
