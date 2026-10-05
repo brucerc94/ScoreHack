@@ -322,12 +322,29 @@ Rectangle {
 
                 ListView {
                     id: joinList
+                    property real preservedContentY: 0
+                    property bool restoringContentY: false
+
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
                     spacing: 4
                     model: backend.joinItems
                     boundsBehavior: Flickable.StopAtBounds
+
+                    onContentYChanged: {
+                        if (!restoringContentY)
+                            preservedContentY = contentY
+                    }
+
+                    onModelChanged: {
+                        restoringContentY = true
+                        Qt.callLater(function() {
+                            var maximum = Math.max(0, contentHeight - height)
+                            contentY = Math.min(preservedContentY, maximum)
+                            restoringContentY = false
+                        })
+                    }
 
                     delegate: Rectangle {
                         width: joinList.width
