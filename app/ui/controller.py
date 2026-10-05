@@ -34,8 +34,6 @@ class AppController(QObject):
     frameChanged = Signal()
     rangeChanged = Signal()
     cropChanged = Signal()
-    motionCorrectionChanged = Signal()
-    removeOverlaysChanged = Signal()
     layoutModeChanged = Signal()
     selectionChanged = Signal()
     currentFrameSelectionChanged = Signal()
@@ -64,8 +62,6 @@ class AppController(QObject):
         self._cancel_event = Event()
         self._montage_cancel_event = Event()
 
-        self._motion_correction = True
-        self._remove_overlays = True
         self._layout_mode = "individual"
 
         self._selected_frames: list[int] = []
@@ -163,14 +159,6 @@ class AppController(QObject):
     @Property(int, notify=prepared)
     def videoHeight(self) -> int:
         return self._preparation.video_info.height if self._preparation else 0
-
-    @Property(bool, notify=motionCorrectionChanged)
-    def motionCorrection(self) -> bool:
-        return self._motion_correction
-
-    @Property(bool, notify=removeOverlaysChanged)
-    def removeOverlays(self) -> bool:
-        return self._remove_overlays
 
     @Property(str, notify=layoutModeChanged)
     def layoutMode(self) -> str:
@@ -297,12 +285,6 @@ class AppController(QObject):
         self._source = path
         self.logMessage.emit(f"Video seleccionado: {Path(path).name}")
 
-    @Slot(bool)
-    def setMotionCorrection(self, value: bool) -> None:
-        if self._motion_correction != bool(value):
-            self._motion_correction = bool(value)
-            self.motionCorrectionChanged.emit()
-
     @Slot(str)
     def setLayoutMode(self, value: str) -> None:
         if value not in {"individual", "horizontal"}:
@@ -419,13 +401,6 @@ class AppController(QObject):
         self._layout_cuts.clear()
         self.layoutCutsChanged.emit()
 
-    @Slot(bool)
-    def setRemoveOverlays(self, value: bool) -> None:
-        if self._remove_overlays != bool(value):
-            self._remove_overlays = bool(value)
-            self.removeOverlaysChanged.emit()
-            self._schedule_montage_refresh()
-
     @Slot(float)
     def setInterval(self, value: float) -> None:
         if value > 0:
@@ -533,8 +508,6 @@ class AppController(QObject):
             end_frame=self._range_end,
             sheets_per_page=sheets_per_page,
             page_size="A4",
-            stabilize_motion=self._motion_correction,
-            remove_overlays=self._remove_overlays,
             layout_mode=self._layout_mode,
             selected_frames=tuple(self._selected_frames),
             overlap_overrides=self._effective_overlaps(),
