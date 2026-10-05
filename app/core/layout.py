@@ -45,7 +45,7 @@ def split_panorama(
 
     for index, (start, end) in enumerate(zip(positions, positions[1:])):
         if cancel_event and cancel_event.is_set():
-            raise InterruptedError("Proceso cancelado por el usuario.")
+            raise InterruptedError("Process canceled by user.")
 
         start = max(0, min(start, width - 1))
         end = max(start + 1, min(end, width))
