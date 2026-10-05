@@ -19,8 +19,16 @@ Rectangle {
         fileMode: FileDialog.SaveFile
         onAccepted: {
             var path = root.localPath(selectedFile)
-            backend.generateTo(path, parseInt(pagesCombo.currentText))
+            backend.generateTo(path, root.pagesPerPage())
         }
+    }
+
+    function pagesPerPage() {
+        return parseInt(
+            backend.layoutMode === "horizontal"
+            ? horizontalPagesCombo.currentText
+            : pagesCombo.currentText
+        )
     }
 
     function localPath(urlValue) {
@@ -463,13 +471,7 @@ Rectangle {
                 Layout.preferredHeight: 44
                 text: "Vista previa"
                 enabled: backend.frameCount > 0 && !backend.busy
-                onClicked: backend.preview(
-                    parseInt(
-                        backend.layoutMode === "horizontal"
-                        ? horizontalPagesCombo.currentText
-                        : pagesCombo.currentText
-                    )
-                )
+                onClicked: backend.preview(root.pagesPerPage())
             }
 
             Button {
