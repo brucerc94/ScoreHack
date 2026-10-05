@@ -27,6 +27,8 @@ class AppController(QObject):
     cropChanged = Signal()
     motionCorrectionChanged = Signal()
     removeOverlaysChanged = Signal()
+    layoutModeChanged = Signal()
+    selectionChanged = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -46,6 +48,8 @@ class AppController(QObject):
         self._cancel_event = Event()
         self._motion_correction = True
         self._remove_overlays = True
+        self._layout_mode = "individual"
+        self._selected_frames: set[int] = set()
         self._events: Queue[tuple[str, object]] = Queue()
 
         self._event_timer = QTimer(self)
@@ -125,6 +129,27 @@ class AppController(QObject):
     def removeOverlays(self) -> bool:
         return self._remove_overlays
 
+    @Property(str, notify=layoutModeChanged)
+    def layoutMode(self) -> str:
+        return self._layout_mode
+
+    @Property(int, notify=selectionChanged)
+    def selectedFrameCount(self) -> int:
+        return len(self._selected_frames)
+
+    @Property(bool, notify=selectionChanged)
+    def currentFrameSelected(self) -> bool:
+        return self._current_frame in self._selected_frames
+
+    @Property(str, notify=selectionChanged)
+    def selectionSummary(self) -> str:
+        if not self._selected_frames:
+            return "Sin selección manual"
+        indices = sorted(index + 1 for index in self._selected_frames)
+        preview = ", ".join(str(index) for index in indices[:8])
+        suffix = "…" if len(indices) > 8 else ""
+        return f"{len(indices)} seleccionados: {preview}{suffix}"
+
     @Slot(str)
     def setSourceText(self, value: str) -> None:
         self._source = value.strip()
@@ -142,6 +167,30 @@ class AppController(QObject):
         if self._motion_correction != bool(value):
             self._motion_correction = bool(value)
             self.motionCorrectionChanged.emit()
+
+    @Slot(str)
+    def setLayoutMode(self, value: str) -> None:
+        if value not in {"individual", "horizontal"}:
+            return
+        if self._layout_mode != value:
+            self._layout_mode = value
+            self.layoutModeChanged.emit()
+
+    @Slot()
+    def toggleCurrentFrameSelection(self) -> None:
+        if not self._frame_paths:
+            return
+        if self._current_frame in self._selected_frames:
+            self._selected_frames.remove(self._current_frame)
+        else:
+            self._selected_frames.add(self._current_frame)
+        self.selectionChanged.emit()
+
+    @Slot()
+    def clearFrameSelection(self) -> None:
+        if self._selected_frames:
+            self._selected_frames.clear()
+            self.selectionChanged.emit()
 
     @Slot(bool)
     def setRemoveOverlays(self, value: bool) -> None:
@@ -190,6 +239,8 @@ class AppController(QObject):
         self._range_end = 0
         self._crop_top = 0
         self._crop_bottom = 0
+        self._selected_frames.clear()
+        self.selectionChanged.emit()
         self.prepared.emit()
         self.frameChanged.emit()
         self.rangeChanged.emit()
@@ -242,6 +293,8 @@ class AppController(QObject):
             sheets_per_page=sheets_per_page,
             stabilize_motion=self._motion_correction,
             remove_overlays=self._remove_overlays,
+            layout_mode=self._layout_mode,
+            selected_frames=tuple(sorted(self._selected_frames)),
         )
         settings.validate()
         return settings
