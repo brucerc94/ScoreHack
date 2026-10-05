@@ -179,7 +179,7 @@ def stitch_horizontal(
 
     for index in range(len(images) - 1):
         if cancel_event and cancel_event.is_set():
-            raise InterruptedError("Proceso cancelado por el usuario.")
+            raise InterruptedError("Process canceled by user.")
 
         overlap, confidence = _match_overlap(images[index], images[index + 1])
         auto_overlaps.append(overlap)
@@ -205,7 +205,7 @@ def stitch_horizontal(
     panorama = images[0]
     for index, image in enumerate(images[1:]):
         if cancel_event and cancel_event.is_set():
-            raise InterruptedError("Proceso cancelado por el usuario.")
+            raise InterruptedError("Process canceled by user.")
         panorama = _blend_pair(
             panorama,
             image,
