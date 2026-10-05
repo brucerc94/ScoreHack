@@ -3,7 +3,7 @@ setlocal
 cd /d %~dp0
 
 echo ============================================
-echo   Sheet Music Extractor
+echo   ScoreHack
 echo ============================================
 echo.
 
