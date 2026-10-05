@@ -15,7 +15,7 @@ ProgressCallback = Callable[[float, str], None]
 def _read(path: Path) -> np.ndarray:
     image = cv2.imread(str(path), cv2.IMREAD_COLOR)
     if image is None:
-        raise RuntimeError(f"No se pudo leer {path.name}.")
+        raise RuntimeError(f"Could not read {path.name}.")
     return image
 
 
@@ -127,7 +127,7 @@ def _blend_pair(
 
 def _normalize_images(images: list[np.ndarray]) -> list[np.ndarray]:
     if not images:
-        raise ValueError("No hay imágenes para unir.")
+        raise ValueError("There are no images to join.")
     height = images[0].shape[0]
     return [_resize_height(image, height) for image in images]
 
@@ -141,7 +141,7 @@ def _validate_overrides(
         return
     if len(overrides) != frame_count - 1:
         raise ValueError(
-            f"Se esperaban {frame_count - 1} ajustes de unión y se recibieron {len(overrides)}."
+            f"Expected {frame_count - 1} join adjustments, received {len(overrides)}."
         )
     minimum = 0
     maximum = max(1, int(frame_width * 0.70))
@@ -149,7 +149,7 @@ def _validate_overrides(
         overlap is not None and (overlap < minimum or overlap > maximum)
         for overlap in overrides
     ):
-        raise ValueError("Uno de los solapes manuales está fuera del rango permitido.")
+        raise ValueError("A manual overlap is outside the allowed range.")
 
 
 def stitch_horizontal(
@@ -167,7 +167,7 @@ def stitch_horizontal(
     """
     paths = list(image_paths)
     if len(paths) < 2:
-        raise ValueError("La unión horizontal necesita al menos 2 frames.")
+        raise ValueError("Horizontal reconstruction needs at least 2 frames.")
 
     images = _normalize_images([_read(path) for path in paths])
     frame_width = images[0].shape[1]
@@ -188,7 +188,7 @@ def stitch_horizontal(
         if on_progress:
             on_progress(
                 (index + 1) / (len(images) - 1),
-                f"Detectando unión {index + 1}/{len(images) - 1}…",
+                f"Detecting join {index + 1}/{len(images) - 1}…",
             )
 
     effective_overlaps = tuple(
@@ -218,10 +218,10 @@ def stitch_horizontal(
         panorama,
         [cv2.IMWRITE_JPEG_QUALITY, 95],
     ):
-        raise RuntimeError(f"No se pudo guardar {output_path.name}.")
+        raise RuntimeError(f"Could not save {output_path.name}.")
 
     if on_progress:
-        on_progress(1.0, "Reconstrucción horizontal lista.")
+        on_progress(1.0, "Horizontal reconstruction ready.")
 
     return MontageResult(
         output_path=output_path,
