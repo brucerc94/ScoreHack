@@ -44,7 +44,7 @@ class AppController(QObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self._status = "Listo para comenzar"
+        self._status = "Ready to begin"
         self._progress = 0.0
         self._busy = False
         self._interval_seconds = 1.0
@@ -283,7 +283,7 @@ class AppController(QObject):
         if not path:
             return
         self._source = path
-        self.logMessage.emit(f"Video seleccionado: {Path(path).name}")
+        self.logMessage.emit(f"Selected video: {Path(path).name}")
 
     @Slot(str)
     def setLayoutMode(self, value: str) -> None:
@@ -413,10 +413,10 @@ class AppController(QObject):
 
         source = self._source.strip()
         if not source:
-            self.error.emit("Selecciona un video o pega una URL de YouTube.")
+            self.error.emit("Select a video or paste a YouTube URL.")
             return
         if self._interval_seconds <= 0:
-            self.error.emit("El intervalo debe ser mayor que 0.")
+            self.error.emit("The interval must be greater than 0.")
             return
 
         self._close_pipeline()
@@ -429,7 +429,7 @@ class AppController(QObject):
         self._set_busy(True)
         self._set_progress(0.0)
         self._set_status("Analizando video…")
-        self.logMessage.emit("▶ Analizando fuente…")
+        self.logMessage.emit("▶ Analyzing source…")
 
         self._pipeline = ExtractionPipeline(self._on_pipeline_event)
         self._run(self._pipeline.prepare, source, self._interval_seconds)
@@ -456,7 +456,7 @@ class AppController(QObject):
         self.rangeChanged.emit()
         self.cropChanged.emit()
         self._set_progress(0.0)
-        self._set_status("Listo para comenzar")
+        self._set_status("Ready to begin")
 
     @Slot(float)
     def setFrameIndex(self, value: float) -> None:
@@ -643,7 +643,7 @@ class AppController(QObject):
     def cancel(self) -> None:
         if self._busy:
             self._cancel_event.set()
-            self._set_status("Cancelando…")
+            self._set_status("Canceling…")
 
     def _start_operation(self, status: str, log: str) -> None:
         self._cancel_event.clear()
@@ -693,8 +693,8 @@ class AppController(QObject):
                 self._handle_error(str(payload))
             elif name == "cancelled":
                 self._set_progress(0.0)
-                self._set_status("Proceso cancelado")
-                self.logMessage.emit("■ Proceso cancelado.")
+                self._set_status("Process canceled")
+                self.logMessage.emit("■ Process canceled.")
                 self._set_busy(False)
             elif name == "worker_finished":
                 self._set_busy(False)
@@ -742,7 +742,7 @@ class AppController(QObject):
     def _handle_montage_error(self, message: str) -> None:
         logger.error("Reconstrucción: %s", message)
         self._set_montage_busy(False)
-        self.logMessage.emit(f"✕ Reconstrucción: {message}")
+        self.logMessage.emit(f"✕ Reconstruction: {message}")
         self._restart_pending_montage()
 
     def _restart_pending_montage(self) -> None:
@@ -753,7 +753,7 @@ class AppController(QObject):
     def _handle_previewed(self, payload: object) -> None:
         output = Path(payload)
         self._set_progress(1.0)
-        self._set_status("Vista previa lista")
+        self._set_status("Preview ready")
         self.logMessage.emit(f"✓ Vista previa: {output}")
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(output)))
         self.previewed.emit(str(output))
@@ -762,7 +762,7 @@ class AppController(QObject):
     def _handle_generated(self, payload: object) -> None:
         output = Path(payload)
         self._set_progress(1.0)
-        self._set_status("PDF generado correctamente")
+        self._set_status("PDF generated successfully")
         self.logMessage.emit(f"✓ PDF: {output}")
         self.generated.emit(str(output))
         self._set_busy(False)
