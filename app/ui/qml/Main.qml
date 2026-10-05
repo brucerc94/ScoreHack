@@ -10,12 +10,12 @@ ApplicationWindow {
 
     // Fixed window size calculated from the full content stack:
     // header + source + main workspace + activity + spacing/margins.
-    width: 1080
-    height: 1080
-    minimumWidth: 1080
-    maximumWidth: 1080
-    minimumHeight: 1080
-    maximumHeight: 1080
+    width: 1440
+    height: 1000
+    minimumWidth: 1440
+    maximumWidth: 1440
+    minimumHeight: 1000
+    maximumHeight: 1000
 
     flags: Qt.Window
            | Qt.WindowTitleHint
@@ -31,7 +31,7 @@ ApplicationWindow {
         spacing: 0
 
         AppSidebar {
-            Layout.preferredWidth: 230
+            Layout.preferredWidth: 210
             Layout.fillHeight: true
         }
 
@@ -41,7 +41,7 @@ ApplicationWindow {
             clip: true
 
             ColumnLayout {
-                width: Math.max(760, parent.width - 48)
+                width: Math.max(1000, parent.width - 48)
                 x: 24
                 spacing: 14
 
@@ -78,8 +78,8 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 635
-                    spacing: 14
+                    Layout.preferredHeight: 650
+                    spacing: 16
 
                     PreviewCard {
                         Layout.fillWidth: true
