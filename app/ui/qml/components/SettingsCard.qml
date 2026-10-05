@@ -5,7 +5,7 @@ import QtQuick.Dialogs
 
 Rectangle {
     id: root
-    Layout.preferredWidth: 360
+    Layout.preferredWidth: 350
     Layout.fillHeight: true
     radius: 16
     color: "#111827"
@@ -32,15 +32,24 @@ Rectangle {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 16
-        spacing: 8
+        anchors.margins: 18
+        spacing: 10
 
-        Label {
-            text: "Ajustes"
-            color: "#f4f7fb"
-            font.pixelSize: 16
-            font.bold: true
+        RowLayout {
             Layout.fillWidth: true
+            Label {
+                text: "Ajustes"
+                color: "#f4f7fb"
+                font.pixelSize: 18
+                font.bold: true
+            }
+            Item { Layout.fillWidth: true }
+            Label {
+                text: backend.layoutMode === "horizontal" ? "RECONSTRUCCIÓN" : "INDIVIDUAL"
+                color: "#6f86a5"
+                font.pixelSize: 9
+                font.bold: true
+            }
         }
 
         ScrollView {
@@ -53,35 +62,69 @@ Rectangle {
 
             ColumnLayout {
                 width: settingsScroll.availableWidth
-                spacing: 6
+                spacing: 9
 
                 Label {
-                    text: "Intervalo entre frames (s)"
-                    color: "#8290a6"
+                    text: "Captura"
+                    color: "#a9b6c9"
                     font.pixelSize: 12
-                }
-
-                TextField {
-                    id: intervalField
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 34
-                    text: "1.0"
-                    selectByMouse: true
-                    validator: DoubleValidator { bottom: 0.1; top: 60.0; decimals: 2 }
-                    onEditingFinished: backend.setInterval(Number(text))
-                    color: "#e8edf5"
-                    font.pixelSize: 12
-                    background: Rectangle {
-                        radius: 8
-                        color: "#0d1522"
-                        border.color: "#263752"
-                    }
+                    font.bold: true
+                    Layout.topMargin: 2
                 }
 
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 44
-                    radius: 9
+                    Layout.preferredHeight: 72
+                    radius: 10
+                    color: "#0d1522"
+                    border.color: "#1b2a3f"
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 5
+
+                        Label {
+                            text: "Intervalo entre frames"
+                            color: "#dbe5f2"
+                            font.pixelSize: 12
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            TextField {
+                                id: intervalField
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 34
+                                text: "1.0"
+                                validator: DoubleValidator { bottom: 0.1; top: 60.0; decimals: 2 }
+                                onEditingFinished: backend.setInterval(Number(text))
+                                color: "#e8edf5"
+                                font.pixelSize: 12
+                                background: Rectangle {
+                                    radius: 8
+                                    color: "#111a28"
+                                    border.color: "#263752"
+                                }
+                            }
+                            Label { text: "seg"; color: "#71829a"; font.pixelSize: 11 }
+                        }
+                    }
+                }
+
+                Label {
+                    text: "Preparación de imagen"
+                    color: "#a9b6c9"
+                    font.pixelSize: 12
+                    font.bold: true
+                    Layout.topMargin: 3
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 64
+                    radius: 10
                     color: "#0d1522"
                     border.color: "#1b2a3f"
 
@@ -89,29 +132,24 @@ Rectangle {
                         anchors.fill: parent
                         anchors.leftMargin: 12
                         anchors.rightMargin: 8
-                        spacing: 8
 
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 1
-
+                            spacing: 2
                             Label {
                                 text: "Corregir movimiento"
                                 color: "#dbe5f2"
                                 font.pixelSize: 12
                                 font.bold: true
                             }
-
                             Label {
                                 text: backend.layoutMode === "horizontal"
-                                      ? "Desactivado al unir horizontalmente"
-                                      : "Sigue desplazamientos de cámara y partitura"
+                                      ? "Se desactiva en reconstrucción"
+                                      : "Alinea pequeños desplazamientos"
                                 color: "#687991"
                                 font.pixelSize: 10
-                                elide: Text.ElideRight
                             }
                         }
-
                         Switch {
                             checked: backend.motionCorrection
                             enabled: !backend.busy && backend.layoutMode === "individual"
@@ -122,8 +160,8 @@ Rectangle {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 44
-                    radius: 9
+                    Layout.preferredHeight: 64
+                    radius: 10
                     color: "#0d1522"
                     border.color: "#1b2a3f"
 
@@ -131,27 +169,22 @@ Rectangle {
                         anchors.fill: parent
                         anchors.leftMargin: 12
                         anchors.rightMargin: 8
-                        spacing: 8
 
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 1
-
+                            spacing: 2
                             Label {
                                 text: "Quitar resaltado móvil"
                                 color: "#dbe5f2"
                                 font.pixelSize: 12
                                 font.bold: true
                             }
-
                             Label {
-                                text: "Elimina la barra/cursor de la partitura"
+                                text: "Elimina cursor o barra coloreada"
                                 color: "#687991"
                                 font.pixelSize: 10
-                                elide: Text.ElideRight
                             }
                         }
-
                         Switch {
                             checked: backend.removeOverlays
                             enabled: !backend.busy
@@ -161,16 +194,23 @@ Rectangle {
                 }
 
                 Label {
-                    text: "Modo de salida"
-                    color: "#8290a6"
+                    text: "Salida"
+                    color: "#a9b6c9"
                     font.pixelSize: 12
-                    Layout.topMargin: 5
+                    font.bold: true
+                    Layout.topMargin: 3
+                }
+
+                Label {
+                    text: "Modo"
+                    color: "#687991"
+                    font.pixelSize: 10
                 }
 
                 ComboBox {
                     id: layoutCombo
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 34
+                    Layout.preferredHeight: 38
                     model: ["Individual", "Unión horizontal"]
                     currentIndex: backend.layoutMode === "horizontal" ? 1 : 0
                     enabled: !backend.busy
@@ -178,149 +218,68 @@ Rectangle {
                 }
 
                 Label {
-                    text: backend.layoutMode === "horizontal"
-                          ? "Selecciona frames y controla visualmente la unión horizontal."
-                          : backend.selectedFrameCount > 0
-                            ? "La selección manual reemplaza el rango de frames."
-                            : "Sin selección manual: se usa el rango indicado."
+                    visible: backend.layoutMode === "horizontal"
+                    text: "La selección manual controla los frames y cada unión."
                     color: "#687991"
                     font.pixelSize: 10
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
 
-                Rectangle {
+                ColumnLayout {
+                    visible: backend.layoutMode === "individual"
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 38
-                    radius: 8
-                    color: "#0d1522"
-                    border.color: "#1b2a3f"
+                    spacing: 7
 
                     Label {
-                        anchors.fill: parent
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
-                        verticalAlignment: Text.AlignVCenter
-                        text: backend.selectedFrameCount > 0
-                              ? backend.selectionSummary
-                              : "Frames manuales: ninguno"
-                        color: "#aebbd0"
-                        elide: Text.ElideRight
+                        text: "Rango de frames"
+                        color: "#687991"
                         font.pixelSize: 10
+                    }
+
+                    Label {
+                        text: (backend.rangeStart + 1) + "  →  " + (backend.rangeEnd + 1)
+                        color: "#dbe5f2"
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
+
+                    Slider {
+                        Layout.fillWidth: true
+                        from: 0
+                        to: Math.max(1, backend.frameCount - 1)
+                        value: backend.rangeStart
+                        enabled: backend.frameCount > 0
+                        onMoved: backend.setRangeStart(value)
+                    }
+
+                    Slider {
+                        Layout.fillWidth: true
+                        from: 0
+                        to: Math.max(1, backend.frameCount - 1)
+                        value: backend.rangeEnd
+                        enabled: backend.frameCount > 0
+                        onMoved: backend.setRangeEnd(value)
+                    }
+
+                    Label {
+                        text: "Partituras por página"
+                        color: "#687991"
+                        font.pixelSize: 10
+                        Layout.topMargin: 2
+                    }
+
+                    ComboBox {
+                        id: pagesCombo
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 38
+                        model: ["1", "2", "3", "4", "5", "6", "7", "8"]
+                        currentIndex: 3
                     }
                 }
 
-                Label {
-                    text: "Recorte superior"
-                    color: "#8290a6"
-                    font.pixelSize: 12
-                    Layout.topMargin: 5
-                }
-
-                Slider {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 24
-                    from: 0
-                    to: Math.max(1, backend.videoHeight - 2)
-                    value: backend.cropTop
-                    enabled: backend.frameCount > 0
-                    onMoved: backend.setCropTop(value)
-                }
-
-                Label {
-                    text: backend.cropTop + " px"
-                    color: "#667891"
-                    font.pixelSize: 11
-                }
-
-                Label {
-                    text: "Recorte inferior"
-                    color: "#8290a6"
-                    font.pixelSize: 12
-                    Layout.topMargin: 4
-                }
-
-                Slider {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 24
-                    from: 0
-                    to: Math.max(1, backend.videoHeight - 2)
-                    value: backend.cropBottom
-                    enabled: backend.frameCount > 0
-                    onMoved: backend.setCropBottom(value)
-                }
-
-                Label {
-                    text: backend.cropBottom + " px"
-                    color: "#667891"
-                    font.pixelSize: 11
-                }
-
-                Label {
-                    visible: backend.layoutMode === "individual"
-                    text: "Rango de frames"
-                    color: "#8290a6"
-                    font.pixelSize: 12
-                    Layout.topMargin: 5
-                }
-
-                Label {
-                    visible: backend.layoutMode === "individual"
-                    text: (backend.rangeStart + 1) + " → " + (backend.rangeEnd + 1)
-                    color: "#cbd5e3"
-                    font.pixelSize: 12
-                    font.bold: true
-                }
-
-                Slider {
-                    visible: backend.layoutMode === "individual"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 24
-                    from: 0
-                    to: Math.max(1, backend.frameCount - 1)
-                    value: backend.rangeStart
-                    enabled: backend.frameCount > 0
-                    onMoved: backend.setRangeStart(value)
-                }
-
-                Slider {
-                    visible: backend.layoutMode === "individual"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 24
-                    from: 0
-                    to: Math.max(1, backend.frameCount - 1)
-                    value: backend.rangeEnd
-                    enabled: backend.frameCount > 0
-                    onMoved: backend.setRangeEnd(value)
-                }
-
-                Label {
-                    visible: backend.layoutMode === "individual"
-                    text: "Partituras por página"
-                    color: "#8290a6"
-                    font.pixelSize: 12
-                    Layout.topMargin: 5
-                }
-
-                ComboBox {
-                    id: pagesCombo
-                    visible: backend.layoutMode === "individual"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 34
-                    model: ["1", "2", "3", "4", "5", "6", "7", "8"]
-                    currentIndex: 3
-                }
-
-                Item {
-                    Layout.preferredHeight: 8
-                }
+                Item { Layout.preferredHeight: 6 }
             }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: "#1d2a3c"
         }
 
         RowLayout {
@@ -329,7 +288,7 @@ Rectangle {
 
             Button {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 40
+                Layout.preferredHeight: 44
                 text: "Vista previa"
                 enabled: backend.frameCount > 0 && !backend.busy
                 onClicked: backend.preview(parseInt(pagesCombo.currentText))
@@ -337,7 +296,7 @@ Rectangle {
 
             Button {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 40
+                Layout.preferredHeight: 44
                 text: "Generar PDF"
                 enabled: backend.frameCount > 0 && !backend.busy
                 onClicked: pdfDialog.open()
