@@ -26,8 +26,8 @@ Rectangle {
 
                 Label {
                     text: backend.layoutMode === "horizontal"
-                          ? "Reconstrucción de partitura"
-                          : "Vista previa del frame"
+                          ? "Score reconstruction"
+                          : "Frame preview"
                     color: "#f4f7fb"
                     font.pixelSize: 17
                     font.bold: true
@@ -35,8 +35,8 @@ Rectangle {
 
                 Label {
                     text: backend.layoutMode === "horizontal"
-                          ? "Selecciona frames y controla cada unión"
-                          : "Ajusta el recorte y el rango antes de exportar"
+                          ? "Select frames and control each join"
+                          : "Adjust crop and frame range before export"
                     color: "#687993"
                     font.pixelSize: 10
                 }
@@ -61,7 +61,7 @@ Rectangle {
             Label {
                 text: backend.frameCount > 0
                       ? ("Frame " + (backend.currentFrame + 1) + " / " + backend.frameCount)
-                      : "Sin video"
+                      : "No video"
                 color: "#70819a"
                 font.pixelSize: 11
             }
@@ -115,7 +115,7 @@ Rectangle {
                 Label {
                     anchors.centerIn: parent
                     visible: backend.frameCount === 0
-                    text: "Analiza un video para comenzar"
+                    text: "Analyze a video to begin"
                     color: "#59677c"
                 }
             }
@@ -181,7 +181,7 @@ Rectangle {
 
                                 Label {
                                     anchors.centerIn: parent
-                                    text: "Corte " + (index + 1)
+                                    text: "Cut " + (index + 1)
                                     color: "white"
                                     font.pixelSize: 9
                                     font.bold: true
@@ -227,8 +227,8 @@ Rectangle {
                     anchors.centerIn: parent
                     visible: !backend.montageBusy && backend.montagePreviewSource === ""
                     text: backend.selectedFrameCount < 2
-                          ? "Selecciona al menos 2 frames"
-                          : "Preparando reconstrucción…"
+                          ? "Select at least 2 frames"
+                          : "Preparing reconstruction…"
                     color: "#59677c"
                 }
             }
@@ -241,7 +241,7 @@ Rectangle {
             spacing: 8
 
             Label {
-                text: "Cortes de página: " + backend.layoutCutCount
+                text: "Cuts de página: " + backend.layoutCutCount
                 color: "#dbe5f2"
                 font.pixelSize: 11
                 font.bold: true
@@ -250,7 +250,7 @@ Rectangle {
             Button {
                 Layout.preferredWidth: 150
                 Layout.preferredHeight: 34
-                text: "Agregar corte aquí"
+                text: "Add cut here"
                 enabled: backend.montagePreviewSource !== "" && !backend.montageBusy
                 onClicked: {
                     var center = (
@@ -265,14 +265,14 @@ Rectangle {
             Button {
                 Layout.preferredWidth: 115
                 Layout.preferredHeight: 34
-                text: "Quitar cortes"
+                text: "Clear cuts"
                 enabled: backend.layoutCutCount > 0 && !backend.busy
                 onClicked: backend.clearLayoutCuts()
             }
 
             Label {
                 Layout.fillWidth: true
-                text: "Arrastra las líneas rosas para decidir dónde se divide la partitura."
+                text: "Drag the pink lines to decide where the score is split."
                 color: "#77879f"
                 font.pixelSize: 10
                 elide: Text.ElideRight
@@ -298,7 +298,7 @@ Rectangle {
             Button {
                 Layout.preferredWidth: 150
                 Layout.preferredHeight: 36
-                text: "Agregar frame"
+                text: "Add frame"
                 enabled: backend.frameCount > 0
                          && !backend.busy
                          && !backend.currentFrameSelected
@@ -308,7 +308,7 @@ Rectangle {
             Button {
                 Layout.preferredWidth: 90
                 Layout.preferredHeight: 36
-                text: "Vaciar"
+                text: "Clear"
                 enabled: backend.selectedFrameCount > 0 && !backend.busy
                 onClicked: backend.clearFrameSelection()
             }
@@ -316,8 +316,8 @@ Rectangle {
             Label {
                 Layout.fillWidth: true
                 text: backend.selectedFrameCount === 0
-                      ? "Elige un frame y pulsa Agregar frame."
-                      : "Los frames se unen de izquierda a derecha."
+                      ? "Choose a frame and click Add frame."
+                      : "Frames are joined from left to right."
                 color: "#7b8ba3"
                 font.pixelSize: 11
                 elide: Text.ElideRight
@@ -406,7 +406,7 @@ Rectangle {
                     Layout.fillWidth: true
 
                     Label {
-                        text: "Solapes por unión"
+                        text: "Joins"
                         color: "#dbe5f2"
                         font.pixelSize: 12
                         font.bold: true
@@ -415,7 +415,7 @@ Rectangle {
                     Item { Layout.fillWidth: true }
 
                     Label {
-                        text: "Cada frame tiene su propio ajuste"
+                        text: "Each join has its own setting"
                         color: "#677990"
                         font.pixelSize: 9
                     }
@@ -483,7 +483,7 @@ Rectangle {
                                           ? "Manual"
                                           : (backend.joinAutoReliable(index)
                                                 ? "Auto"
-                                                : "Ajustar")
+                                                : "Adjust")
                                     color: backend.joinIsManual(index)
                                            ? "#7aaef2"
                                            : "#71839c"
