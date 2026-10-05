@@ -19,6 +19,7 @@ class ExtractionSettings:
     remove_overlays: bool = True
     layout_mode: str = "individual"
     selected_frames: tuple[int, ...] = ()
+    overlap_overrides: tuple[int, ...] = ()
 
     def validate(self) -> None:
         if self.interval_seconds <= 0:
@@ -39,6 +40,8 @@ class ExtractionSettings:
             raise ValueError("La selección manual contiene frames inválidos.")
         if len(set(self.selected_frames)) != len(self.selected_frames):
             raise ValueError("La selección manual contiene frames repetidos.")
+        if any(overlap < 0 for overlap in self.overlap_overrides):
+            raise ValueError("Los solapes no pueden ser negativos.")
 
 
 @dataclass(frozen=True)
@@ -55,3 +58,13 @@ class PreparationResult:
     video_path: Path
     frame_paths: tuple[Path, ...]
     video_info: VideoInfo
+
+
+@dataclass(frozen=True)
+class MontageResult:
+    output_path: Path
+    auto_overlaps: tuple[int, ...]
+    effective_overlaps: tuple[int, ...]
+    confidences: tuple[float, ...]
+    frame_width: int
+    frame_height: int
