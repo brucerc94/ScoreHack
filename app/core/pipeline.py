@@ -51,12 +51,12 @@ class ExtractionPipeline:
     ) -> PreparationResult:
         source = source.strip()
         if not source:
-            raise ValueError("Selecciona un video o pega una URL de YouTube.")
+            raise ValueError("Select a video or paste a YouTube URL.")
 
         video_path = self._resolve_source(source, cancel_event)
 
         self._check_cancel(cancel_event)
-        self._emit("status", "Analizando video…")
+        self._emit("status", "Analyzing video…")
         info = inspect_video(video_path)
         frames = extract_frames(
             video_path,
@@ -74,7 +74,7 @@ class ExtractionPipeline:
 
     def _resolve_source(self, source: str, cancel_event: Event | None) -> Path:
         if is_youtube_url(source):
-            self._emit("status", "Preparando descarga…")
+            self._emit("status", "Preparing download…")
             path = download_youtube(
                 source,
                 self.workspace.video,
@@ -85,7 +85,7 @@ class ExtractionPipeline:
 
         path = Path(source)
         if not path.exists() or not path.is_file():
-            raise FileNotFoundError("No se encontró el archivo de video seleccionado.")
+            raise FileNotFoundError("The selected video file was not found.")
         return path
 
     def _selected_frames(
@@ -95,7 +95,7 @@ class ExtractionPipeline:
         if settings.layout_mode == "horizontal":
             if len(settings.selected_frames) < 2:
                 raise ValueError(
-                    "Selecciona al menos 2 frames para el montaje horizontal."
+                    "Select at least 2 frames for horizontal reconstruction."
                 )
 
             invalid = [
@@ -104,7 +104,7 @@ class ExtractionPipeline:
                 if index < 0 or index >= len(self.frame_paths)
             ]
             if invalid:
-                raise ValueError("La selección manual contiene frames fuera del video.")
+                raise ValueError("Manual frame selection contains frames outside the video.")
 
             return tuple(self.frame_paths[index] for index in settings.selected_frames)
 
@@ -129,7 +129,7 @@ class ExtractionPipeline:
         crops_dir = root / "crops"
         cleaned_dir = root / "cleaned"
 
-        self._emit("status", "Aplicando recorte seleccionado…")
+        self._emit("status", "Applying selected crop…")
         cropped = crop_frames(
             candidates,
             crops_dir,
@@ -152,7 +152,7 @@ class ExtractionPipeline:
         overlap_overrides: tuple[int | None, ...] = (),
     ) -> MontageResult:
         if settings.layout_mode != "horizontal":
-            raise ValueError("La reconstrucción horizontal requiere el modo horizontal.")
+            raise ValueError("Horizontal reconstruction requires horizontal mode.")
 
         cropped = self._prepare_cropped_frames(
             settings,
@@ -160,9 +160,9 @@ class ExtractionPipeline:
             work_root=output_path.parent / output_path.stem,
         )
         if len(cropped) < 2:
-            raise ValueError("Selecciona al menos 2 frames para el montaje horizontal.")
+            raise ValueError("Select at least 2 frames for horizontal reconstruction.")
 
-        self._emit("status", "Detectando zonas repetidas entre frames…")
+        self._emit("status", "Detecting repeated areas between frames…")
         return stitch_horizontal(
             cropped,
             output_path,
@@ -183,7 +183,7 @@ class ExtractionPipeline:
                 cancel_event=cancel_event,
                 overlap_overrides=settings.overlap_overrides,
             )
-            self._emit("status", "Aplicando división manual de página…")
+            self._emit("status", "Applying manual page cuts…")
             segments = split_panorama(
                 montage.output_path,
                 settings.layout_cuts,
@@ -194,7 +194,7 @@ class ExtractionPipeline:
             return segments
 
         cropped = self._prepare_cropped_frames(settings, cancel_event=cancel_event)
-        self._emit("status", "Eliminando fotogramas repetidos…")
+        self._emit("status", "Removing duplicate frames…")
         unique = remove_consecutive_duplicates(
             cropped,
             settings.duplicate_threshold,
@@ -202,7 +202,7 @@ class ExtractionPipeline:
         )
         self._check_cancel(cancel_event)
         if not unique:
-            raise RuntimeError("No quedaron partituras después de eliminar duplicados.")
+            raise RuntimeError("No score frames remained after duplicate removal.")
         return unique
 
     def _export(
@@ -212,7 +212,7 @@ class ExtractionPipeline:
         cancel_event: Event | None = None,
     ) -> Path:
         images = self._build_unique_images(settings, cancel_event)
-        self._emit("status", "Generando PDF…")
+        self._emit("status", "Generating PDF…")
         output = export_pdf(
             images,
             output_pdf,
@@ -221,7 +221,7 @@ class ExtractionPipeline:
             margin_pt=settings.margin_pt,
             layout_mode=settings.layout_mode,
         )
-        self._emit("progress", (1.0, "PDF generado."))
+        self._emit("progress", (1.0, "PDF generated."))
         return output
 
     def generate(
@@ -253,7 +253,7 @@ class ExtractionPipeline:
     ) -> MontageResult:
         settings.validate()
         if settings.layout_mode != "horizontal":
-            raise ValueError("Activa el modo Unir horizontal para ver el montaje.")
+            raise ValueError("Enable Horizontal join mode to preview the reconstruction.")
 
         output = self._build_montage(
             settings,
