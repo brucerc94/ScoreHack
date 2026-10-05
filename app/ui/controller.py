@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from queue import Empty, Queue
 from threading import Event, Thread
 
-from PySide6.QtCore import QObject, Property, QUrl, Signal, Slot
+from PySide6.QtCore import QObject, Property, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
 
 from app.core.models import ExtractionSettings, PreparationResult
@@ -11,7 +12,7 @@ from app.core.pipeline import ExtractionPipeline
 
 
 class AppController(QObject):
-    """API Qt/QML del extractor, separada del núcleo de procesamiento."""
+    """Puente Qt/QML. Los trabajadores nunca modifican directamente la UI."""
 
     statusChanged = Signal()
     progressChanged = Signal()
@@ -45,6 +46,12 @@ class AppController(QObject):
         self._cancel_event = Event()
         self._motion_correction = True
         self._remove_overlays = True
+        self._events: Queue[tuple[str, object]] = Queue()
+
+        self._event_timer = QTimer(self)
+        self._event_timer.setInterval(50)
+        self._event_timer.timeout.connect(self._drain_events)
+        self._event_timer.start()
 
     def _set_status(self, value: str) -> None:
         self._status = value
@@ -106,6 +113,10 @@ class AppController(QObject):
     def videoWidth(self) -> int:
         return self._preparation.video_info.width if self._preparation else 0
 
+    @Property(int, notify=prepared)
+    def videoHeight(self) -> int:
+        return self._preparation.video_info.height if self._preparation else 0
+
     @Property(bool, notify=motionCorrectionChanged)
     def motionCorrection(self) -> bool:
         return self._motion_correction
@@ -113,10 +124,6 @@ class AppController(QObject):
     @Property(bool, notify=removeOverlaysChanged)
     def removeOverlays(self) -> bool:
         return self._remove_overlays
-
-    @Property(int, notify=prepared)
-    def videoHeight(self) -> int:
-        return self._preparation.video_info.height if self._preparation else 0
 
     @Slot(str)
     def setSourceText(self, value: str) -> None:
@@ -165,9 +172,7 @@ class AppController(QObject):
             self.error.emit("El intervalo debe ser mayor que 0.")
             return
 
-        if self._pipeline:
-            self._pipeline.close()
-
+        self._close_pipeline()
         self._cancel_event.clear()
         self._set_busy(True)
         self._set_progress(0.0)
@@ -175,15 +180,13 @@ class AppController(QObject):
         self.logMessage.emit("▶ Analizando fuente…")
 
         self._pipeline = ExtractionPipeline(self._on_pipeline_event)
-        self._run(self._pipeline.prepare, source, self._interval_seconds)
+        self._run(self._pipeline.prepare, self._interval_seconds, source)
 
     @Slot()
     def reset(self) -> None:
         if self._busy:
             return
-        if self._pipeline:
-            self._pipeline.close()
-            self._pipeline = None
+        self._close_pipeline()
         self._preparation = None
         self._frame_paths = ()
         self._current_frame = 0
@@ -202,9 +205,7 @@ class AppController(QObject):
     def setFrameIndex(self, value: float) -> None:
         if not self._frame_paths:
             return
-        self._current_frame = max(
-            0, min(int(round(value)), len(self._frame_paths) - 1)
-        )
+        self._current_frame = max(0, min(int(round(value)), len(self._frame_paths) - 1))
         self.frameChanged.emit()
 
     @Slot(float)
@@ -212,9 +213,7 @@ class AppController(QObject):
         if not self._frame_paths:
             return
         maximum = len(self._frame_paths) - 1
-        self._range_start = max(
-            0, min(int(round(value)), self._range_end, maximum)
-        )
+        self._range_start = max(0, min(int(round(value)), self._range_end, maximum))
         self.rangeChanged.emit()
 
     @Slot(float)
@@ -222,10 +221,7 @@ class AppController(QObject):
         if not self._frame_paths:
             return
         maximum = len(self._frame_paths) - 1
-        self._range_end = max(
-            self._range_start,
-            min(int(round(value)), maximum),
-        )
+        self._range_end = max(self._range_start, min(int(round(value)), maximum))
         self.rangeChanged.emit()
 
     @Slot(float)
@@ -258,25 +254,19 @@ class AppController(QObject):
     def preview(self, sheets_per_page: int) -> None:
         if self._busy or not self._preparation or not self._pipeline:
             return
-
         try:
             settings = self._settings(sheets_per_page)
         except ValueError as exc:
             self.error.emit(str(exc))
             return
 
-        self._cancel_event.clear()
-        self._set_busy(True)
-        self._set_progress(0.0)
-        self._set_status("Generando vista previa…")
-        self.logMessage.emit("▶ Generando vista previa…")
+        self._start_operation("Generando vista previa…", "▶ Generando vista previa…")
         self._run(self._pipeline.preview, settings)
 
     @Slot(str, int)
     def generateTo(self, output_path: str, sheets_per_page: int) -> None:
         if self._busy or not self._preparation or not self._pipeline:
             return
-
         try:
             settings = self._settings(sheets_per_page)
         except ValueError as exc:
@@ -287,11 +277,7 @@ class AppController(QObject):
         if output.suffix.lower() != ".pdf":
             output = output.with_suffix(".pdf")
 
-        self._cancel_event.clear()
-        self._set_busy(True)
-        self._set_progress(0.0)
-        self._set_status("Generando PDF…")
-        self.logMessage.emit("▶ Generando PDF…")
+        self._start_operation("Generando PDF…", "▶ Generando PDF…")
         self._run(self._pipeline.generate, settings, output)
 
     @Slot()
@@ -300,68 +286,104 @@ class AppController(QObject):
             self._cancel_event.set()
             self._set_status("Cancelando…")
 
+    def _start_operation(self, status: str, log: str) -> None:
+        self._cancel_event.clear()
+        self._set_busy(True)
+        self._set_progress(0.0)
+        self._set_status(status)
+        self.logMessage.emit(log)
+
     def _run(self, function, *args) -> None:
         def worker() -> None:
             try:
                 function(*args, cancel_event=self._cancel_event)
             except InterruptedError:
-                self._set_busy(False)
-                self._set_progress(0.0)
-                self._set_status("Proceso cancelado")
-                self.logMessage.emit("■ Proceso cancelado.")
+                self._events.put(("cancelled", None))
             except Exception as exc:
-                self._set_busy(False)
-                self.error.emit(str(exc))
+                self._events.put(("error", str(exc)))
+            finally:
+                self._events.put(("worker_finished", None))
 
         Thread(target=worker, daemon=True).start()
 
     def _on_pipeline_event(self, name: str, payload: object) -> None:
-        if name == "status":
-            self._set_status(str(payload))
-            self.logMessage.emit(str(payload))
-            return
+        self._events.put((name, payload))
 
-        if name == "progress":
-            progress, message = payload
-            self._set_progress(float(progress))
-            self._set_status(str(message))
-            return
+    def _drain_events(self) -> None:
+        while True:
+            try:
+                name, payload = self._events.get_nowait()
+            except Empty:
+                break
 
-        if name == "prepared":
-            self._preparation = payload
-            self._frame_paths = payload.frame_paths
-            self._current_frame = 0
-            self._range_start = 0
-            self._range_end = max(0, len(self._frame_paths) - 1)
-            self._crop_top = 0
-            self._crop_bottom = 0
-            self.prepared.emit()
-            self.frameChanged.emit()
-            self.rangeChanged.emit()
-            self.cropChanged.emit()
-            self._set_busy(False)
-            return
+            if name == "status":
+                self._set_status(str(payload))
+                self.logMessage.emit(str(payload))
+            elif name == "progress":
+                progress, message = payload
+                self._set_progress(float(progress))
+                self._set_status(str(message))
+            elif name == "prepared":
+                self._handle_prepared(payload)
+            elif name == "previewed":
+                self._handle_previewed(payload)
+            elif name == "generated":
+                self._handle_generated(payload)
+            elif name == "error":
+                self._handle_error(str(payload))
+            elif name == "cancelled":
+                self._set_progress(0.0)
+                self._set_status("Proceso cancelado")
+                self.logMessage.emit("■ Proceso cancelado.")
+                self._set_busy(False)
+            elif name == "worker_finished":
+                self._set_busy(False)
 
-        if name == "previewed":
-            output = Path(payload)
-            self._set_progress(1.0)
-            self._set_status("Vista previa lista")
-            self.logMessage.emit(f"✓ Vista previa: {output}")
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(output)))
-            self.previewed.emit(str(output))
-            self._set_busy(False)
-            return
+    def _handle_prepared(self, payload: object) -> None:
+        self._preparation = payload
+        self._frame_paths = payload.frame_paths
+        self._current_frame = 0
+        self._range_start = 0
+        self._range_end = max(0, len(self._frame_paths) - 1)
+        self._crop_top = 0
+        self._crop_bottom = 0
+        self.prepared.emit()
+        self.frameChanged.emit()
+        self.rangeChanged.emit()
+        self.cropChanged.emit()
+        self._set_busy(False)
 
-        if name == "generated":
-            output = Path(payload)
-            self._set_progress(1.0)
-            self._set_status("PDF generado correctamente")
-            self.logMessage.emit(f"✓ PDF: {output}")
-            self.generated.emit(str(output))
-            self._set_busy(False)
+    def _handle_previewed(self, payload: object) -> None:
+        output = Path(payload)
+        self._set_progress(1.0)
+        self._set_status("Vista previa lista")
+        self.logMessage.emit(f"✓ Vista previa: {output}")
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(output)))
+        self.previewed.emit(str(output))
+        self._set_busy(False)
+
+    def _handle_generated(self, payload: object) -> None:
+        output = Path(payload)
+        self._set_progress(1.0)
+        self._set_status("PDF generado correctamente")
+        self.logMessage.emit(f"✓ PDF: {output}")
+        self.generated.emit(str(output))
+        self._set_busy(False)
+
+    def _handle_error(self, message: str) -> None:
+        self._set_busy(False)
+        self._set_status("Error")
+        self.logMessage.emit(f"✕ {message}")
+        self.error.emit(message)
+
+    def _close_pipeline(self) -> None:
+        if self._pipeline:
+            self._pipeline.close()
+            self._pipeline = None
 
     def close(self) -> None:
         self._cancel_event.set()
+        self._event_timer.stop()
         if not self._busy and self._pipeline:
             self._pipeline.close()
             self._pipeline = None
