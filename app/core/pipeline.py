@@ -11,8 +11,6 @@ from .downloader import download_youtube, is_youtube_url
 from .frame_extractor import extract_frames, inspect_video
 from .layout import split_panorama
 from .models import ExtractionSettings, MontageResult, PreparationResult
-from .motion_tracker import stabilize_frames
-from .overlay_cleaner import remove_transient_overlays
 from .pdf_exporter import export_pdf
 from .stitcher import stitch_horizontal
 from .workspace import Workspace
@@ -131,22 +129,9 @@ class ExtractionPipeline:
         crops_dir = root / "crops"
         cleaned_dir = root / "cleaned"
 
-        working_frames = candidates
-        if settings.stabilize_motion and settings.layout_mode == "individual":
-            self._emit("status", "Siguiendo movimiento dentro del recorte seleccionado…")
-            working_frames = stabilize_frames(
-                candidates,
-                aligned_dir,
-                crop_top=settings.crop_top,
-                crop_bottom=settings.crop_bottom,
-                on_progress=lambda p, m: self._emit("progress", (p, m)),
-                cancel_event=cancel_event,
-            )
-            self._check_cancel(cancel_event)
-
         self._emit("status", "Aplicando recorte seleccionado…")
         cropped = crop_frames(
-            working_frames,
+            candidates,
             crops_dir,
             settings.crop_top,
             settings.crop_bottom,
@@ -156,16 +141,6 @@ class ExtractionPipeline:
             cancel_event=cancel_event,
         )
         self._check_cancel(cancel_event)
-
-        if settings.remove_overlays:
-            self._emit("status", "Quitando resaltadores y cursores móviles…")
-            cropped = remove_transient_overlays(
-                cropped,
-                cleaned_dir,
-                on_progress=lambda p, m: self._emit("progress", (p, m)),
-                cancel_event=cancel_event,
-            )
-            self._check_cancel(cancel_event)
 
         return cropped
 
