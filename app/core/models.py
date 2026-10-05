@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+AUTO_OVERLAP_MIN_CONFIDENCE = 0.78
+
 
 @dataclass(frozen=True)
 class ExtractionSettings:
