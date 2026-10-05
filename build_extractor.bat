@@ -3,7 +3,7 @@ setlocal
 cd /d %~dp0
 
 echo ============================================
-echo   Sheet Music Extractor - Build
+echo   ScoreHack - Build
 echo ============================================
 echo.
 
@@ -23,11 +23,11 @@ if errorlevel 1 goto :error
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 
-python -m PyInstaller --noconfirm --clean --onefile --windowed --name ExtractorPartituras --icon icon.ico --collect-all PySide6 --collect-all yt_dlp --add-data "app\ui\qml;app\ui\qml" --add-data "icon.ico;." app\main.py
+python -m PyInstaller --noconfirm --clean --onefile --windowed --name ScoreHack --icon icon.ico --collect-all PySide6 --collect-all yt_dlp --add-data "app\ui\qml;app\ui\qml" --add-data "icon.ico;." app\main.py
 if errorlevel 1 goto :error
 
 echo.
-echo BUILD COMPLETE: dist\ExtractorPartituras.exe
+echo BUILD COMPLETE: dist\ScoreHack.exe
 echo.
 pause
 exit /b 0
