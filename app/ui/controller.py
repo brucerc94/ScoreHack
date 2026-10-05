@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from threading import Event, Thread
 
-from PySide6.QtCore import QObject, Property, QUrl, Signal, Slot
+from PySide6.QtCore import QDesktopServices, QObject, Property, QUrl, Signal, Slot
 
 from app.core.models import ExtractionSettings, PreparationResult
 from app.core.pipeline import ExtractionPipeline
@@ -17,6 +17,7 @@ class AppController(QObject):
     busyChanged = Signal()
     prepared = Signal()
     generated = Signal(str)
+    previewed = Signal(str)
     error = Signal(str)
     logMessage = Signal(str)
     frameChanged = Signal()
@@ -226,11 +227,7 @@ class AppController(QObject):
         self.cropChanged.emit()
         self.frameChanged.emit()
 
-    @Slot(str, int)
-    def generateTo(self, output_path: str, sheets_per_page: int) -> None:
-        if self._busy or not self._preparation or not self._pipeline:
-            return
-
+    def _settings(self, sheets_per_page: int) -> ExtractionSettings:
         settings = ExtractionSettings(
             interval_seconds=self._interval_seconds,
             crop_top=self._crop_top,
@@ -240,9 +237,34 @@ class AppController(QObject):
             sheets_per_page=sheets_per_page,
             stabilize_motion=self._motion_correction,
         )
+        settings.validate()
+        return settings
+
+    @Slot(int)
+    def preview(self, sheets_per_page: int) -> None:
+        if self._busy or not self._preparation or not self._pipeline:
+            return
 
         try:
-            settings.validate()
+            settings = self._settings(sheets_per_page)
+        except ValueError as exc:
+            self.error.emit(str(exc))
+            return
+
+        self._cancel_event.clear()
+        self._set_busy(True)
+        self._set_progress(0.0)
+        self._set_status("Generando vista previa…")
+        self.logMessage.emit("▶ Generando vista previa…")
+        self._run(self._pipeline.preview, settings)
+
+    @Slot(str, int)
+    def generateTo(self, output_path: str, sheets_per_page: int) -> None:
+        if self._busy or not self._preparation or not self._pipeline:
+            return
+
+        try:
+            settings = self._settings(sheets_per_page)
         except ValueError as exc:
             self.error.emit(str(exc))
             return
@@ -303,6 +325,16 @@ class AppController(QObject):
             self.frameChanged.emit()
             self.rangeChanged.emit()
             self.cropChanged.emit()
+            self._set_busy(False)
+            return
+
+        if name == "previewed":
+            output = Path(payload)
+            self._set_progress(1.0)
+            self._set_status("Vista previa lista")
+            self.logMessage.emit(f"✓ Vista previa: {output}")
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(output)))
+            self.previewed.emit(str(output))
             self._set_busy(False)
             return
 
