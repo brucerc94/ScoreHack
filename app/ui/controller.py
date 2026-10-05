@@ -8,7 +8,12 @@ from threading import Event, Thread
 from PySide6.QtCore import QObject, Property, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
 
-from app.core.models import ExtractionSettings, MontageResult, PreparationResult
+from app.core.models import (
+    AUTO_OVERLAP_MIN_CONFIDENCE,
+    ExtractionSettings,
+    MontageResult,
+    PreparationResult,
+)
 from app.core.pipeline import ExtractionPipeline
 
 
@@ -202,8 +207,6 @@ class AppController(QObject):
 
     @Property(list, notify=joinChanged)
     def joinItems(self) -> list[dict]:
-        from app.core.models import AUTO_OVERLAP_MIN_CONFIDENCE
-
         items: list[dict] = []
         for join in range(self.joinCount):
             first = self._selected_frames[join]
@@ -428,8 +431,6 @@ class AppController(QObject):
         self._schedule_montage_refresh()
 
     def _settings(self, sheets_per_page: int) -> ExtractionSettings:
-        from app.core.models import AUTO_OVERLAP_MIN_CONFIDENCE
-        _ = AUTO_OVERLAP_MIN_CONFIDENCE
         return ExtractionSettings(
             interval_seconds=self._interval_seconds,
             crop_top=self._crop_top,
