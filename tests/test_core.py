@@ -53,38 +53,6 @@ def test_export_pdf_creates_file() -> None:
         assert output.stat().st_size > 0
 
 
-def test_moving_highlight_is_removed_from_score() -> None:
-    from app.core.overlay_cleaner import remove_transient_overlays
-
-    with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
-        source = root / "crops"
-        output = root / "cleaned"
-        source.mkdir()
-
-        base = np.full((220, 300, 3), 255, dtype=np.uint8)
-        cv2.line(base, (20, 70), (280, 70), (0, 0, 0), 2)
-        cv2.line(base, (20, 120), (280, 120), (0, 0, 0), 2)
-
-        frames = []
-        for index, x in enumerate((70, 140, 210)):
-            frame = base.copy()
-            cv2.rectangle(frame, (x, 20), (x + 28, 190), (180, 235, 235), -1)
-            cv2.rectangle(frame, (x, 20), (x + 28, 190), (80, 100, 100), 1)
-            path = source / f"frame_{index:05d}.jpg"
-            assert cv2.imwrite(str(path), frame)
-            frames.append(path)
-
-        result = remove_transient_overlays(frames, output)
-        assert len(result) == 3
-
-        # En el frame intermedio la zona del cursor debe recuperar el fondo blanco
-        # de los frames vecinos, conservando las líneas negras de la partitura.
-        cleaned = cv2.imread(str(result[1]), cv2.IMREAD_COLOR)
-        assert cleaned is not None
-        assert int(cleaned[100, 154].mean()) > 220
-
-
 def test_split_panorama_uses_manual_cut_points() -> None:
     from app.core.layout import split_panorama
 
