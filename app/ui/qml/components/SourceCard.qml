@@ -33,10 +33,10 @@ Rectangle {
 
     FileDialog {
         id: videoDialog
-        title: "Seleccionar video"
+        title: "Select video"
         nameFilters: [
             "Videos (*.mp4 *.mkv *.avi *.mov *.webm *.m4v)",
-            "Todos los archivos (*)"
+            "All files (*)"
         ]
         fileMode: FileDialog.OpenFile
 
@@ -61,7 +61,7 @@ Rectangle {
                 spacing: 0
 
                 Label {
-                    text: "1. Fuente"
+                    text: "1. Source"
                     color: "#f4f7fb"
                     font.pixelSize: 16
                     font.bold: true
@@ -69,8 +69,8 @@ Rectangle {
 
                 Label {
                     text: backend.frameCount > 0
-                          ? backend.frameCount + " frames preparados"
-                          : "Selecciona el video que contiene la partitura"
+                          ? backend.frameCount + " frames ready"
+                          : "Select a video containing the sheet music"
                     color: "#6f8098"
                     font.pixelSize: 10
                 }
@@ -103,18 +103,18 @@ Rectangle {
                     Layout.preferredWidth: 105
                     Layout.preferredHeight: 32
                     radius: 8
-                    color: root.sourceMode === "Video local" ? "#1d6fff" : "#182233"
+                    color: root.sourceMode === "Local video" ? "#1d6fff" : "#182233"
 
                     MouseArea {
                         anchors.fill: parent
                         enabled: !backend.busy
-                        onClicked: root.switchMode("Video local")
+                        onClicked: root.switchMode("Local video")
                     }
 
                     Label {
                         anchors.centerIn: parent
-                        text: "Video local"
-                        color: root.sourceMode === "Video local" ? "white" : "#8292aa"
+                        text: "Local video"
+                        color: root.sourceMode === "Local video" ? "white" : "#8292aa"
                         font.pixelSize: 11
                     }
                 }
@@ -138,7 +138,7 @@ Rectangle {
                     visible: root.sourceMode === "YouTube"
                     anchors.fill: parent
                     anchors.margins: 1
-                    placeholderText: "Pega aquí la URL de YouTube"
+                    placeholderText: "Paste a YouTube URL here"
                     color: "#e8edf5"
                     placeholderTextColor: "#5c6e87"
                     font.pixelSize: 12
@@ -149,12 +149,12 @@ Rectangle {
                 }
 
                 Label {
-                    visible: root.sourceMode === "Video local"
+                    visible: root.sourceMode === "Local video"
                     anchors.fill: parent
                     anchors.leftMargin: 12
                     anchors.rightMargin: 12
                     text: root.localName === ""
-                          ? "Arrastra aquí el video o selecciónalo"
+                          ? "Drop a video here or select one"
                           : root.localName
                     color: root.localName === "" ? "#718199" : "#dbe5f2"
                     verticalAlignment: Text.AlignVCenter
@@ -165,7 +165,7 @@ Rectangle {
                 DropArea {
                     id: dropArea
                     anchors.fill: parent
-                    enabled: root.sourceMode === "Video local" && !backend.busy
+                    enabled: root.sourceMode === "Local video" && !backend.busy
 
                     Rectangle {
                         anchors.fill: parent
@@ -178,7 +178,7 @@ Rectangle {
                     Label {
                         anchors.centerIn: parent
                         visible: dropArea.containsDrag
-                        text: "Suelta el video aquí"
+                        text: "Drop the video here"
                         color: "#9bc1ff"
                         font.bold: true
                     }
@@ -194,10 +194,10 @@ Rectangle {
             }
 
             Button {
-                visible: root.sourceMode === "Video local"
+                visible: root.sourceMode === "Local video"
                 Layout.preferredWidth: 112
                 Layout.fillHeight: true
-                text: "Seleccionar"
+                text: "Browse"
                 enabled: !backend.busy
                 onClicked: videoDialog.open()
             }
@@ -205,7 +205,7 @@ Rectangle {
             Button {
                 Layout.preferredWidth: 132
                 Layout.fillHeight: true
-                text: "Analizar video"
+                text: "Analyze video"
                 enabled: !backend.busy && (
                     root.sourceMode === "YouTube"
                     || root.localName !== ""
