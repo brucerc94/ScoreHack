@@ -52,6 +52,67 @@ Rectangle {
             }
         }
 
+        Label {
+            text: "Recorte"
+            color: "#a9b6c9"
+            font.pixelSize: 12
+            font.bold: true
+            Layout.topMargin: 2
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 132
+            radius: 10
+            color: "#0d1522"
+            border.color: "#1b2a3f"
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 6
+
+                Label {
+                    text: "Zona útil de la partitura"
+                    color: "#dbe5f2"
+                    font.pixelSize: 11
+                    font.bold: true
+                }
+
+                Label {
+                    text: "Superior: " + backend.cropTop + " px"
+                    color: "#70819a"
+                    font.pixelSize: 10
+                }
+
+                Slider {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 24
+                    from: 0
+                    to: Math.max(1, backend.videoHeight - backend.cropBottom - 2)
+                    value: backend.cropTop
+                    enabled: backend.frameCount > 0
+                    onMoved: backend.setCropTop(value)
+                }
+
+                Label {
+                    text: "Inferior: " + backend.cropBottom + " px"
+                    color: "#70819a"
+                    font.pixelSize: 10
+                }
+
+                Slider {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 24
+                    from: 0
+                    to: Math.max(1, backend.videoHeight - backend.cropTop - 2)
+                    value: backend.cropBottom
+                    enabled: backend.frameCount > 0
+                    onMoved: backend.setCropBottom(value)
+                }
+            }
+        }
+
         ScrollView {
             id: settingsScroll
             Layout.fillWidth: true
