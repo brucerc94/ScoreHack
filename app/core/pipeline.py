@@ -188,7 +188,7 @@ class ExtractionPipeline:
                 raise ValueError("Selecciona al menos 2 frames para el montaje horizontal.")
             return cropped[0]
 
-        self._emit("status", "Uniendo frames horizontalmente…")
+        self._emit("status", "Colocando frames seleccionados lado a lado…")
         return stitch_horizontal(
             cropped,
             output_path,
