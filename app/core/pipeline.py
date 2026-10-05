@@ -33,7 +33,6 @@ class ExtractionPipeline:
         self,
         source: str,
         interval_seconds: float,
-        stabilize_motion: bool = True,
         cancel_event: Event | None = None,
     ) -> PreparationResult:
         source = source.strip()
