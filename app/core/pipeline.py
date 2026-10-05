@@ -54,17 +54,7 @@ class ExtractionPipeline:
         if not source:
             raise ValueError("Selecciona un video o pega una URL de YouTube.")
 
-        if is_youtube_url(source):
-            self._emit("status", "Preparando descarga…")
-            video_path = download_youtube(
-                source,
-                self.workspace.video,
-                lambda p, m: self._emit("progress", (p, m)),
-            )
-        else:
-            video_path = Path(source)
-            if not video_path.exists() or not video_path.is_file():
-                raise FileNotFoundError("No se encontró el archivo de video seleccionado.")
+        video_path = self._resolve_source(source, cancel_event)
 
         self._check_cancel(cancel_event)
         self._emit("status", "Analizando video…")
@@ -83,49 +73,70 @@ class ExtractionPipeline:
         self._emit("prepared", result)
         return result
 
+    def _resolve_source(self, source: str, cancel_event: Event | None) -> Path:
+        if is_youtube_url(source):
+            self._emit("status", "Preparando descarga…")
+            path = download_youtube(
+                source,
+                self.workspace.video,
+                lambda p, m: self._emit("progress", (p, m)),
+            )
+            self._check_cancel(cancel_event)
+            return path
+
+        path = Path(source)
+        if not path.exists() or not path.is_file():
+            raise FileNotFoundError("No se encontró el archivo de video seleccionado.")
+        return path
+
     def _selected_frames(
         self,
         settings: ExtractionSettings,
+        require_horizontal_selection: bool = True,
     ) -> tuple[Path, ...]:
+        if settings.layout_mode == "horizontal":
+            if require_horizontal_selection and len(settings.selected_frames) < 2:
+                raise ValueError(
+                    "Selecciona al menos 2 frames para el montaje horizontal."
+                )
+
+            invalid = [
+                index
+                for index in settings.selected_frames
+                if index < 0 or index >= len(self.frame_paths)
+            ]
+            if invalid:
+                raise ValueError("La selección manual contiene frames fuera del video.")
+
+            return tuple(self.frame_paths[index] for index in settings.selected_frames)
+
         start = settings.start_frame
-        end = len(self.frame_paths) - 1 if settings.end_frame is None else min(
-            settings.end_frame,
-            len(self.frame_paths) - 1,
+        end = (
+            len(self.frame_paths) - 1
+            if settings.end_frame is None
+            else min(settings.end_frame, len(self.frame_paths) - 1)
         )
-        candidates = self.frame_paths[start : end + 1]
-        if not settings.selected_frames:
-            return candidates
+        return self.frame_paths[start : end + 1]
 
-        invalid = [index for index in settings.selected_frames if index >= len(self.frame_paths)]
-        if invalid:
-            raise ValueError("La selección manual contiene frames fuera del video.")
-        selected = tuple(
-            self.frame_paths[index]
-            for index in settings.selected_frames
-            if start <= index <= end
-        )
-        if not selected:
-            raise ValueError("Ningún frame seleccionado está dentro del rango.")
-        return selected
-
-    def _prepare_images(
+    def _prepare_cropped_frames(
         self,
         settings: ExtractionSettings,
         cancel_event: Event | None = None,
+        work_root: Path | None = None,
     ) -> tuple[Path, ...]:
-        if settings.layout_mode == "horizontal" and not settings.selected_frames:
-            raise ValueError("Selecciona manualmente al menos 2 frames para el montaje horizontal.")
-
         candidates = self._selected_frames(settings)
 
-        # En un montaje horizontal conservamos el desplazamiento lateral. Estabilizar
-        # contra una referencia global lo eliminaría y arruinaría el stitching.
+        root = work_root or self.workspace.root
+        aligned_dir = root / "aligned"
+        crops_dir = root / "crops"
+        cleaned_dir = root / "cleaned"
+
         working_frames = candidates
         if settings.stabilize_motion and settings.layout_mode == "individual":
             self._emit("status", "Siguiendo movimiento dentro del recorte seleccionado…")
             working_frames = stabilize_frames(
                 candidates,
-                self.workspace.aligned,
+                aligned_dir,
                 crop_top=settings.crop_top,
                 crop_bottom=settings.crop_bottom,
                 on_progress=lambda p, m: self._emit("progress", (p, m)),
@@ -136,7 +147,7 @@ class ExtractionPipeline:
         self._emit("status", "Aplicando recorte seleccionado…")
         cropped = crop_frames(
             working_frames,
-            self.workspace.crops,
+            crops_dir,
             settings.crop_top,
             settings.crop_bottom,
             start_index=0,
@@ -149,23 +160,55 @@ class ExtractionPipeline:
             self._emit("status", "Quitando resaltadores y cursores móviles…")
             cropped = remove_transient_overlays(
                 cropped,
-                self.workspace.cleaned,
+                cleaned_dir,
                 on_progress=lambda p, m: self._emit("progress", (p, m)),
                 cancel_event=cancel_event,
             )
             self._check_cancel(cancel_event)
 
+        return cropped
+
+    def _build_montage(
+        self,
+        settings: ExtractionSettings,
+        output_path: Path,
+        cancel_event: Event | None = None,
+        require_selection: bool = True,
+    ) -> Path:
+        if settings.layout_mode != "horizontal":
+            raise ValueError("El montaje horizontal requiere el modo horizontal.")
+
+        cropped = self._prepare_cropped_frames(
+            settings,
+            cancel_event=cancel_event,
+            work_root=output_path.parent / output_path.stem,
+        )
+        if len(cropped) < 2:
+            if require_selection:
+                raise ValueError("Selecciona al menos 2 frames para el montaje horizontal.")
+            return cropped[0]
+
+        self._emit("status", "Uniendo frames horizontalmente…")
+        return stitch_horizontal(
+            cropped,
+            output_path,
+            on_progress=lambda p, m: self._emit("progress", (p, m)),
+        )
+
+    def _build_unique_images(
+        self,
+        settings: ExtractionSettings,
+        cancel_event: Event | None = None,
+    ) -> tuple[Path, ...]:
         if settings.layout_mode == "horizontal":
-            if len(cropped) < 2:
-                raise ValueError("El montaje horizontal necesita al menos 2 frames seleccionados.")
-            self._emit("status", "Uniendo frames horizontalmente…")
-            montage = stitch_horizontal(
-                cropped,
+            montage = self._build_montage(
+                settings,
                 self.workspace.montages / "montaje_horizontal.jpg",
-                on_progress=lambda p, m: self._emit("progress", (p, m)),
+                cancel_event=cancel_event,
             )
             return (montage,)
 
+        cropped = self._prepare_cropped_frames(settings, cancel_event=cancel_event)
         self._emit("status", "Eliminando fotogramas repetidos…")
         unique = remove_consecutive_duplicates(
             cropped,
@@ -183,7 +226,7 @@ class ExtractionPipeline:
         output_pdf: Path,
         cancel_event: Event | None = None,
     ) -> Path:
-        images = self._prepare_images(settings, cancel_event)
+        images = self._build_unique_images(settings, cancel_event)
         self._emit("status", "Generando PDF…")
         output = export_pdf(
             images,
@@ -214,6 +257,24 @@ class ExtractionPipeline:
         settings.validate()
         output = self._export(settings, self.workspace.preview_pdf, cancel_event)
         self._emit("previewed", output)
+        return output
+
+    def preview_montage(
+        self,
+        settings: ExtractionSettings,
+        output_path: Path,
+        cancel_event: Event | None = None,
+    ) -> Path:
+        settings.validate()
+        if settings.layout_mode != "horizontal":
+            raise ValueError("Activa el modo Unir horizontal para ver el montaje.")
+
+        output = self._build_montage(
+            settings,
+            output_path,
+            cancel_event=cancel_event,
+        )
+        self._emit("montage_previewed", output)
         return output
 
     def close(self) -> None:
