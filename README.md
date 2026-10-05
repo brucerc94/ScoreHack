@@ -17,7 +17,7 @@ La aplicación usa **Qt 6 + QML** para una interfaz fluida y moderna. PySide6 es
 - Permite definir el rango de frames a procesar.
 - Permite abrir una vista previa temporal del PDF antes de guardarlo.
 - Permite seleccionar manualmente frames concretos y ver en la UI la secuencia elegida.
-- Permite unir frames horizontalmente de forma manual, mostrándolos lado a lado en la UI y previsualizando la unión antes de exportarla a A4 apaisado.
+- Permite reconstruir partituras horizontalmente detectando automáticamente las zonas repetidas entre frames y permitiendo corregir cada unión manualmente desde la UI.
 - Elimina frames consecutivos visualmente repetidos mediante SSIM después de estabilizarlos.
 - Genera páginas A4 con una cantidad configurable de partituras por página.
 - Guarda únicamente el PDF final en la ruta elegida.
@@ -82,9 +82,9 @@ python -m pytest
 2. Pega la URL o pulsa **Subir video**.
 3. Pulsa **Analizar video** para extraer los frames sin fijar todavía la zona de seguimiento.
 4. Ajusta recorte, frame de vista previa y rango. La corrección de movimiento usa ese recorte como región de seguimiento cuando generas el PDF y puedes activar **Quitar resaltado móvil**.
-5. Selecciona manualmente los frames que quieras conservar. En **Unir horizontal**, selecciona al menos dos frames consecutivos que tengan zona de solape.
-6. Define cuántas partituras deben caber por página cuando uses el modo individual.
-7. Pulsa **Vista previa** para comprobar el resultado, o **Generar PDF** para guardarlo definitivamente.
+5. Selecciona manualmente los frames que quieras conservar. La aplicación intenta detectar automáticamente la zona repetida entre cada par.
+6. En cada unión puedes revisar el solape detectado, cambiarlo con el control **Solape** y volver a **Auto** cuando quieras recuperar la detección.
+7. Revisa la reconstrucción horizontal en vivo y pulsa **Vista previa** o **Generar PDF**.
 
 ## Nota técnica
 
