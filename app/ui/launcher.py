@@ -6,11 +6,13 @@ from pathlib import Path
 from PySide6.QtCore import QUrl
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtGui import QIcon, QGuiApplication
+from PySide6.QtQuickControls2 import QQuickStyle
 
 from app.ui.controller import AppController
 
 
 def run() -> int:
+    QQuickStyle.setStyle("Basic")
     app = QGuiApplication(sys.argv)
     app.setApplicationName("ScoreCapture")
     app.setOrganizationName("Bruno Rivas")
