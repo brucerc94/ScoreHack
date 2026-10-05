@@ -11,6 +11,8 @@ from matplotlib.widgets import Button
 import matplotlib.pyplot as plt
 import threading
 from tkinter import ttk
+import tempfile
+import shutil
 
 
 # === CONFIGURACIÓN ===
@@ -18,19 +20,80 @@ FRAME_DIR = 'frames'
 PARTITURA_DIR = 'partituras'
 FRAME_INTERVAL = 1  # segundos
 
+def verificar_permisos():
+    """Verifica que el programa tenga permisos de escritura en el directorio actual"""
+    try:
+        # Intentar crear un archivo de prueba
+        test_file = "test_permisos.tmp"
+        with open(test_file, 'w') as f:
+            f.write("test")
+        os.remove(test_file)
+        return True
+    except PermissionError:
+        return False
+    except Exception:
+        return False
+
+def crear_directorios_trabajo():
+    """Crea directorios de trabajo con permisos garantizados"""
+    try:
+        # Usar directorio temporal del sistema para evitar problemas de permisos
+        base_dir = tempfile.mkdtemp(prefix="extractor_partituras_")
+        
+        # Crear subdirectorios
+        frames_dir = os.path.join(base_dir, 'frames')
+        partituras_dir = os.path.join(base_dir, 'partituras')
+        
+        os.makedirs(frames_dir, exist_ok=True)
+        os.makedirs(partituras_dir, exist_ok=True)
+        
+        return base_dir, frames_dir, partituras_dir
+    except Exception as e:
+        print(f"❌ Error creando directorios de trabajo: {e}")
+        # Fallback a directorio actual
+        os.makedirs(FRAME_DIR, exist_ok=True)
+        os.makedirs(PARTITURA_DIR, exist_ok=True)
+        return None, FRAME_DIR, PARTITURA_DIR
+
 # === 1. DESCARGAR VIDEO DE YOUTUBE CON yt-dlp ===
 def descargar_video(url, filename):
     print("⏳ Descargando video con yt-dlp...")
     try:
-        subprocess.run([
+        # Crear un directorio temporal con permisos garantizados
+        temp_dir = tempfile.mkdtemp(prefix="extractor_")
+        temp_filename = os.path.join(temp_dir, "video.mp4")
+        
+        # Descargar en el directorio temporal
+        result = subprocess.run([
             "yt-dlp",
             "-f", "bestvideo[ext=mp4]",
-            "-o", filename,
+            "-o", temp_filename,
             url
-        ], check=True)
-        print("✅ Video descargado correctamente.")
-    except subprocess.CalledProcessError:
-        print("❌ Error al descargar el video. Verifique la URL o instalación de yt-dlp.")
+        ], check=True, capture_output=True, text=True)
+        
+        # Mover el archivo descargado al directorio actual
+        if os.path.exists(temp_filename):
+            shutil.move(temp_filename, filename)
+            print("✅ Video descargado correctamente.")
+        else:
+            # Si no se pudo mover, usar directamente el archivo temporal
+            shutil.copy2(temp_filename, filename)
+            print("✅ Video descargado correctamente (copia).")
+        
+        # Limpiar directorio temporal
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error al descargar el video: {e}")
+        print(f"Salida de error: {e.stderr}")
+        raise
+    except PermissionError as e:
+        print(f"❌ Error de permisos: {e}")
+        print("💡 Intenta ejecutar el programa como administrador o en un directorio con permisos de escritura")
+        raise
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        raise
 
 # === 2. EXTRAER FOTOGRAMAS ===
 def extraer_fotogramas(video_path, output_dir, intervalo):
@@ -255,6 +318,18 @@ def limpiar_carpetas(video_filename, hoja_paths):
 
 # === INTERFAZ GRÁFICA ===
 def interfaz_grafica():
+    # Verificar permisos antes de iniciar
+    if not verificar_permisos():
+        messagebox.showwarning(
+            "Advertencia de Permisos", 
+            "⚠️ No tienes permisos de escritura en este directorio.\n\n"
+            "💡 Soluciones:\n"
+            "• Ejecuta el programa como administrador\n"
+            "• Mueve el programa a un directorio con permisos\n"
+            "• Usa el escritorio o documentos\n\n"
+            "El programa intentará usar directorios temporales del sistema."
+        )
+    
     class ProcesoPartitura:
         def __init__(self, ventana, barra, mensajes, canvas, slider_top, slider_bot, slider_frame, slider_start, slider_end, btn_continuar, btn_generar):
             self.ventana = ventana
@@ -298,15 +373,40 @@ def interfaz_grafica():
             self.log('⏳ Descargando video...')
             self.set_progress(1)
             try:
-                subprocess.run([
+                # Crear un directorio temporal con permisos garantizados
+                temp_dir = tempfile.mkdtemp(prefix="extractor_")
+                temp_filename = os.path.join(temp_dir, "video.mp4")
+                
+                # Descargar en el directorio temporal
+                result = subprocess.run([
                     "yt-dlp",
                     "-f", "bestvideo[ext=mp4]",
-                    "-o", filename,
+                    "-o", temp_filename,
                     url
-                ], check=True)
-                self.log('✅ Video descargado correctamente.')
-            except subprocess.CalledProcessError:
-                self.log('❌ Error al descargar el video. Verifique la URL o instalación de yt-dlp.')
+                ], check=True, capture_output=True, text=True)
+                
+                # Mover el archivo descargado al directorio actual
+                if os.path.exists(temp_filename):
+                    shutil.move(temp_filename, filename)
+                    self.log('✅ Video descargado correctamente.')
+                else:
+                    # Si no se pudo mover, usar directamente el archivo temporal
+                    shutil.copy2(temp_filename, filename)
+                    self.log('✅ Video descargado correctamente (copia).')
+                
+                # Limpiar directorio temporal
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                
+            except subprocess.CalledProcessError as e:
+                self.log(f'❌ Error al descargar el video: {e}')
+                self.log(f'Salida de error: {e.stderr}')
+                raise
+            except PermissionError as e:
+                self.log(f'❌ Error de permisos: {e}')
+                self.log('💡 Intenta ejecutar el programa como administrador o en un directorio con permisos de escritura')
+                raise
+            except Exception as e:
+                self.log(f'❌ Error inesperado: {e}')
                 raise
 
         def extraer_fotogramas(self, video_path, output_dir, intervalo):
@@ -464,29 +564,65 @@ def interfaz_grafica():
             self.log(f'✅ PDF creado: {output_pdf}')
 
         def limpiar_carpetas(self, video_filename, hoja_paths):
+            # Limpiar directorios temporales si existen
+            if hasattr(self, 'base_dir') and self.base_dir and os.path.exists(self.base_dir):
+                try:
+                    shutil.rmtree(self.base_dir, ignore_errors=True)
+                    self.log('✅ Directorios temporales eliminados.')
+                except Exception as e:
+                    self.log(f'⚠️ No se pudieron eliminar directorios temporales: {e}')
+            
+            # Limpiar directorios del directorio actual si existen
             if os.path.exists(FRAME_DIR):
                 for file in os.listdir(FRAME_DIR):
-                    os.remove(os.path.join(FRAME_DIR, file))
-                os.rmdir(FRAME_DIR)
+                    try:
+                        os.remove(os.path.join(FRAME_DIR, file))
+                    except:
+                        pass
+                try:
+                    os.rmdir(FRAME_DIR)
+                except:
+                    pass
             if os.path.exists(PARTITURA_DIR):
                 for file in os.listdir(PARTITURA_DIR):
-                    os.remove(os.path.join(PARTITURA_DIR, file))
-                os.rmdir(PARTITURA_DIR)
+                    try:
+                        os.remove(os.path.join(PARTITURA_DIR, file))
+                    except:
+                        pass
+                try:
+                    os.rmdir(PARTITURA_DIR)
+                except:
+                    pass
+            
+            # Eliminar video
             if os.path.exists(video_filename):
-                os.remove(video_filename)
+                try:
+                    os.remove(video_filename)
+                except:
+                    pass
+            
+            # Eliminar hojas
             for hoja in hoja_paths:
                 if os.path.exists(hoja):
-                    os.remove(hoja)
-                    self.log(f'✅ Imagen de hoja eliminada: {hoja}')
-            self.log('✅ Carpetas, video y hojas eliminados.')
+                    try:
+                        os.remove(hoja)
+                        self.log(f'✅ Imagen de hoja eliminada: {hoja}')
+                    except:
+                        pass
+            
+            self.log('✅ Limpieza completada.')
 
         def ejecutar(self, url, nombre_pdf, por_hoja, intervalo, ruta_pdf):
             try:
                 self.btn_generar.config(state='disabled')
                 self.btn_continuar.config(state='disabled')
+                
+                # Crear directorios de trabajo temporales
+                self.base_dir, self.frames_dir, self.partituras_dir = crear_directorios_trabajo()
+                
                 video_filename = "video.mp4"
                 self.descargar_video(url, video_filename)
-                self.extraer_fotogramas(video_filename, FRAME_DIR, intervalo)
+                self.extraer_fotogramas(video_filename, self.frames_dir, intervalo)
                 self.video_path = video_filename
                 if not self.cargar_frames_para_recorte(video_filename):
                     return
@@ -501,8 +637,8 @@ def interfaz_grafica():
         def continuar_proceso(self, nombre_pdf, por_hoja, intervalo, ruta_pdf):
             try:
                 self.btn_continuar.config(state='disabled')
-                self.recortar_partituras(FRAME_DIR, PARTITURA_DIR)
-                unicas = self.eliminar_duplicados(PARTITURA_DIR)
+                self.recortar_partituras(self.frames_dir, self.partituras_dir)
+                unicas = self.eliminar_duplicados(self.partituras_dir)
                 hojas = self.unir_imagenes_por_hojas(unicas, "partitura", max_por_hoja=por_hoja)
                 self.crear_pdf(hojas, ruta_pdf)
                 self.log(f'✅ PDF creado con éxito: {ruta_pdf}')
@@ -560,9 +696,9 @@ def interfaz_grafica():
 
     tk.Label(main_frame, text="Recorte superior (px):").grid(row=7, column=0, sticky="e", pady=3)
     tk.Label(main_frame, text="Recorte inferior (px):").grid(row=8, column=0, sticky="e", pady=3)
-    slider_top = tk.Scale(main_frame, from_=0, to=400, orient='horizontal', length=250)
+    slider_top = tk.Scale(main_frame, from_=0, to=700, orient='horizontal', length=250)
     slider_top.grid(row=7, column=1, columnspan=2, sticky='w', pady=3)
-    slider_bot = tk.Scale(main_frame, from_=0, to=400, orient='horizontal', length=250)
+    slider_bot = tk.Scale(main_frame, from_=0, to=700, orient='horizontal', length=250)
     slider_bot.grid(row=8, column=1, columnspan=2, sticky='w', pady=3)
 
     tk.Label(main_frame, text="Frame para previsualizar:").grid(row=9, column=0, sticky="e", pady=3)
@@ -650,4 +786,12 @@ def interfaz_grafica():
 
 # === EJECUCIÓN ===
 if __name__ == '__main__':
+    print("🎵 Extractor de Partituras de YouTube")
+    print("=====================================")
+    print("💡 Si tienes problemas de permisos, usa:")
+    print("   - run_as_admin.bat (Windows)")
+    print("   - run_as_admin.ps1 (PowerShell)")
+    print("   - Ver SOLUCION_PERMISOS.md para más detalles")
+    print()
+    
     interfaz_grafica() 
