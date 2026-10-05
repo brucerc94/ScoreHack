@@ -27,8 +27,8 @@ def split_panorama(
     cancel_event: Event | None = None,
 ) -> tuple[Path, ...]:
     """
-    Divide un panorama horizontal en segmentos usando únicamente cortes elegidos
-    por el usuario. No intenta interpretar la música ni mover los cortes.
+    Splits a horizontal panorama into segments using only user-defined cuts.
+    It does not interpret the music or move the cuts.
     """
     validate_cut_points(cut_points)
 
