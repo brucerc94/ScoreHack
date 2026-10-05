@@ -92,10 +92,9 @@ class ExtractionPipeline:
     def _selected_frames(
         self,
         settings: ExtractionSettings,
-        require_horizontal_selection: bool = True,
     ) -> tuple[Path, ...]:
         if settings.layout_mode == "horizontal":
-            if require_horizontal_selection and len(settings.selected_frames) < 2:
+            if len(settings.selected_frames) < 2:
                 raise ValueError(
                     "Selecciona al menos 2 frames para el montaje horizontal."
                 )
@@ -174,7 +173,7 @@ class ExtractionPipeline:
         settings: ExtractionSettings,
         output_path: Path,
         cancel_event: Event | None = None,
-        overlap_overrides: tuple[int, ...] = (),
+        overlap_overrides: tuple[int | None, ...] = (),
     ) -> MontageResult:
         if settings.layout_mode != "horizontal":
             raise ValueError("La reconstrucción horizontal requiere el modo horizontal.")
