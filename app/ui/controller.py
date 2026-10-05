@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Event, Thread
@@ -9,6 +10,9 @@ from PySide6.QtGui import QDesktopServices
 
 from app.core.models import ExtractionSettings, MontageResult, PreparationResult
 from app.core.pipeline import ExtractionPipeline
+
+
+logger = logging.getLogger("scorecapture")
 
 
 class AppController(QObject):
@@ -67,6 +71,7 @@ class AppController(QObject):
         self._montage_preview_source = ""
         self._montage_busy = False
         self._montage_generation = 0
+        self._montage_pending = False
 
         self._events: Queue[tuple[str, object]] = Queue()
 
@@ -456,10 +461,7 @@ class AppController(QObject):
         if self.joinCount == 0:
             return ()
         if len(self._auto_overlaps) != self.joinCount:
-            return tuple(
-                self._manual_overlaps.get(index, 0)
-                for index in range(self.joinCount)
-            )
+            return ()
         return tuple(
             self._manual_overlaps.get(index, self._auto_overlaps[index])
             for index in range(self.joinCount)
@@ -496,6 +498,7 @@ class AppController(QObject):
         self._montage_timer.stop()
         self._montage_generation += 1
         self._montage_cancel_event.set()
+        self._montage_pending = False
         self._current_join = 0
         self._auto_overlaps = ()
         self._join_confidences = ()
@@ -512,10 +515,19 @@ class AppController(QObject):
         if len(self._selected_frames) < 2:
             self._reset_montage_state()
             return
+        if self._montage_busy:
+            self._montage_pending = True
+            self._montage_cancel_event.set()
+            return
+        self._montage_pending = False
         self._montage_timer.start()
 
     def _refresh_montage_preview(self) -> None:
         if self._busy or self._layout_mode != "horizontal":
+            return
+        if self._montage_busy:
+            self._montage_pending = True
+            self._montage_cancel_event.set()
             return
         if len(self._selected_frames) < 2:
             return
@@ -652,6 +664,7 @@ class AppController(QObject):
                 self._handle_montage_ready(payload)
             elif name == "montage_cancelled":
                 self._set_montage_busy(False)
+                self._restart_pending_montage()
             elif name == "montage_error":
                 generation, message = payload
                 if generation == self._montage_generation:
@@ -686,10 +699,18 @@ class AppController(QObject):
         self.joinChanged.emit()
         self.montagePreviewChanged.emit()
         self._set_montage_busy(False)
+        self._restart_pending_montage()
 
     def _handle_montage_error(self, message: str) -> None:
+        logger.error("Reconstrucción: %s", message)
         self._set_montage_busy(False)
         self.logMessage.emit(f"✕ Reconstrucción: {message}")
+        self._restart_pending_montage()
+
+    def _restart_pending_montage(self) -> None:
+        if self._montage_pending:
+            self._montage_pending = False
+            self._montage_timer.start()
 
     def _handle_previewed(self, payload: object) -> None:
         output = Path(payload)
