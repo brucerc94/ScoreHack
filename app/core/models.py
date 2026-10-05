@@ -19,7 +19,7 @@ class ExtractionSettings:
     remove_overlays: bool = True
     layout_mode: str = "individual"
     selected_frames: tuple[int, ...] = ()
-    overlap_overrides: tuple[int, ...] = ()
+    overlap_overrides: tuple[int | None, ...] = ()
 
     def validate(self) -> None:
         if self.interval_seconds <= 0:
@@ -40,7 +40,7 @@ class ExtractionSettings:
             raise ValueError("La selección manual contiene frames inválidos.")
         if len(set(self.selected_frames)) != len(self.selected_frames):
             raise ValueError("La selección manual contiene frames repetidos.")
-        if any(overlap < 0 for overlap in self.overlap_overrides):
+        if any(overlap is not None and overlap < 0 for overlap in self.overlap_overrides):
             raise ValueError("Los solapes no pueden ser negativos.")
 
 
