@@ -88,5 +88,33 @@ Rectangle {
             enabled: backend.frameCount > 0
             onMoved: backend.setFrameIndex(value)
         }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            Button {
+                Layout.preferredWidth: 160
+                text: backend.currentFrameSelected
+                      ? "Quitar frame actual"
+                      : "Seleccionar frame actual"
+                enabled: backend.frameCount > 0 && !backend.busy
+                onClicked: backend.toggleCurrentFrameSelection()
+            }
+
+            Button {
+                Layout.preferredWidth: 120
+                text: "Limpiar selección"
+                enabled: backend.selectedFrameCount > 0 && !backend.busy
+                onClicked: backend.clearFrameSelection()
+            }
+
+            Label {
+                Layout.fillWidth: true
+                text: backend.selectionSummary
+                color: "#77879f"
+                elide: Text.ElideRight
+            }
+        }
     }
 }
