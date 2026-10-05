@@ -22,6 +22,7 @@ class AppController(QObject):
     frameChanged = Signal()
     rangeChanged = Signal()
     cropChanged = Signal()
+    motionCorrectionChanged = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -39,6 +40,7 @@ class AppController(QObject):
         self._crop_bottom = 0
         self._pipeline: ExtractionPipeline | None = None
         self._cancel_event = Event()
+        self._motion_correction = True
 
     def _set_status(self, value: str) -> None:
         self._status = value
@@ -100,6 +102,10 @@ class AppController(QObject):
     def videoWidth(self) -> int:
         return self._preparation.video_info.width if self._preparation else 0
 
+    @Property(bool, notify=motionCorrectionChanged)
+    def motionCorrection(self) -> bool:
+        return self._motion_correction
+
     @Property(int, notify=prepared)
     def videoHeight(self) -> int:
         return self._preparation.video_info.height if self._preparation else 0
@@ -119,6 +125,12 @@ class AppController(QObject):
     @Slot(QUrl)
     def setLocalVideoUrl(self, url: QUrl) -> None:
         self.setLocalVideo(url.toLocalFile())
+
+    @Slot(bool)
+    def setMotionCorrection(self, value: bool) -> None:
+        if self._motion_correction != bool(value):
+            self._motion_correction = bool(value)
+            self.motionCorrectionChanged.emit()
 
     @Slot(float)
     def setInterval(self, value: float) -> None:
@@ -149,7 +161,12 @@ class AppController(QObject):
         self.logMessage.emit("▶ Analizando fuente…")
 
         self._pipeline = ExtractionPipeline(self._on_pipeline_event)
-        self._run(self._pipeline.prepare, source, self._interval_seconds)
+        self._run(
+            self._pipeline.prepare,
+            source,
+            self._interval_seconds,
+            self._motion_correction,
+        )
 
     @Slot()
     def reset(self) -> None:
