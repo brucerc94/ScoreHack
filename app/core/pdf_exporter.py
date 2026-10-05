@@ -66,6 +66,7 @@ def _draw_individual_pages(
 
 def _horizontal_page_scale(
     sizes: Sequence[tuple[int, int]],
+    segments_per_page: int,
     usable_width: float,
     usable_height: float,
 ) -> float:
@@ -111,6 +112,7 @@ def _draw_horizontal_pages(
         group_sizes = sizes[page_start : page_start + segments_per_page]
         scale = _horizontal_page_scale(
             group_sizes,
+            segments_per_page,
             usable_width,
             usable_height,
         )
