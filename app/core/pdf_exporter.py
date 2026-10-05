@@ -159,7 +159,7 @@ def export_pdf(
     if page_key not in _PAGE_SIZES:
         raise ValueError(f"Unsupported page size: {page_size}")
 
-    # ScoreCapture uses A4 as the default print canvas for a predictable result.
+    # ScoreHack uses A4 as the default print canvas for a predictable result.
     # Alternative page sizes remain supported for API compatibility.
     page_width, page_height = _PAGE_SIZES[page_key]
 
