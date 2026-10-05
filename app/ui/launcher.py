@@ -16,8 +16,8 @@ def run() -> int:
     configure_logging()
     QQuickStyle.setStyle("Basic")
     app = QGuiApplication(sys.argv)
-    app.setApplicationName("ScoreCapture")
-    app.setOrganizationName("ScoreCapture")
+    app.setApplicationName("ScoreHack")
+    app.setOrganizationName("ScoreHack")
 
     icon = Path(__file__).resolve().parents[2] / "icon.ico"
     icon_url = QUrl.fromLocalFile(str(icon)).toString() if icon.exists() else ""
