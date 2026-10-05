@@ -9,6 +9,7 @@ from .crop import crop_frames
 from .deduplicator import remove_consecutive_duplicates
 from .downloader import download_youtube, is_youtube_url
 from .frame_extractor import extract_frames, inspect_video
+from .layout import split_panorama
 from .models import ExtractionSettings, MontageResult, PreparationResult
 from .motion_tracker import stabilize_frames
 from .overlay_cleaner import remove_transient_overlays
@@ -207,7 +208,15 @@ class ExtractionPipeline:
                 cancel_event=cancel_event,
                 overlap_overrides=settings.overlap_overrides,
             )
-            return (montage.output_path,)
+            self._emit("status", "Aplicando división manual de página…")
+            segments = split_panorama(
+                montage.output_path,
+                settings.layout_cuts,
+                self.workspace.segments,
+                on_progress=lambda p, m: self._emit("progress", (p, m)),
+                cancel_event=cancel_event,
+            )
+            return segments
 
         cropped = self._prepare_cropped_frames(settings, cancel_event=cancel_event)
         self._emit("status", "Eliminando fotogramas repetidos…")
