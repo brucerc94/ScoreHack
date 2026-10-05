@@ -463,7 +463,13 @@ Rectangle {
                 Layout.preferredHeight: 44
                 text: "Vista previa"
                 enabled: backend.frameCount > 0 && !backend.busy
-                onClicked: backend.preview(parseInt(pagesCombo.currentText))
+                onClicked: backend.preview(
+                    parseInt(
+                        backend.layoutMode === "horizontal"
+                        ? horizontalPagesCombo.currentText
+                        : pagesCombo.currentText
+                    )
+                )
             }
 
             Button {
