@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from threading import Event
 from typing import Callable, Iterable
 
 import cv2
@@ -23,6 +24,7 @@ def crop_frames(
     start_index: int = 0,
     end_index: int | None = None,
     on_progress: ProgressCallback | None = None,
+    cancel_event: Event | None = None,
 ) -> tuple[Path, ...]:
     paths = list(frame_paths)
     if not paths:
@@ -38,6 +40,9 @@ def crop_frames(
     output: list[Path] = []
 
     for index, source in enumerate(selected):
+        if cancel_event and cancel_event.is_set():
+            raise InterruptedError("Proceso cancelado por el usuario.")
+
         image = cv2.imread(str(source))
         if image is None:
             raise RuntimeError(f"No se pudo leer {source.name}.")
