@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "extractor-partituras-youtube"
-version = "2.6.0"
+version = "2.7.0"
 description = "Extractor modular de partituras con seguimiento, selección manual y reconstrucción horizontal desde YouTube y videos locales."
 requires-python = ">=3.10,<3.15"
 
