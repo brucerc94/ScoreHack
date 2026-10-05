@@ -9,30 +9,42 @@ Rectangle {
     radius: 16
     color: "#111827"
     border.color: "#1d2a3c"
+    clip: true
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 18
-        spacing: 8
+        anchors.margins: 16
+        spacing: 7
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 24
+            Layout.preferredHeight: 26
 
-            Label {
-                text: backend.layoutMode === "horizontal"
-                      ? "Reconstrucción de partitura"
-                      : "Vista previa"
-                color: "#f4f7fb"
-                font.pixelSize: 16
-                font.bold: true
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 0
+
+                Label {
+                    text: backend.layoutMode === "horizontal"
+                          ? "Reconstrucción de partitura"
+                          : "Vista previa del frame"
+                    color: "#f4f7fb"
+                    font.pixelSize: 17
+                    font.bold: true
+                }
+
+                Label {
+                    text: backend.layoutMode === "horizontal"
+                          ? "Selecciona frames y controla cada unión"
+                          : "Ajusta el recorte y el rango antes de exportar"
+                    color: "#687993"
+                    font.pixelSize: 10
+                }
             }
-
-            Item { Layout.fillWidth: true }
 
             Rectangle {
                 visible: backend.layoutMode === "horizontal"
-                Layout.preferredWidth: 94
+                Layout.preferredWidth: 86
                 Layout.preferredHeight: 24
                 radius: 8
                 color: "#182233"
@@ -40,8 +52,9 @@ Rectangle {
                 Label {
                     anchors.centerIn: parent
                     text: backend.selectedFrameCount + " frames"
-                    color: "#8ea0bb"
+                    color: "#9ab0cf"
                     font.pixelSize: 10
+                    font.bold: true
                 }
             }
 
@@ -54,55 +67,120 @@ Rectangle {
             }
         }
 
-        Rectangle {
+        RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: backend.layoutMode === "horizontal" ? 165 : -1
-            Layout.fillHeight: backend.layoutMode === "individual"
-            radius: 12
-            color: "#080c13"
-            border.color: "#1c293b"
-            clip: true
+            Layout.preferredHeight: 245
+            spacing: 8
 
-            Image {
-                id: preview
-                anchors.centerIn: parent
-                width: Math.min(parent.width - 18, sourceSize.width)
-                height: Math.min(parent.height - 18, sourceSize.height)
-                source: backend.currentFrameSource
-                fillMode: Image.PreserveAspectFit
-                asynchronous: true
-                cache: false
+            Rectangle {
+                Layout.fillWidth: backend.layoutMode === "individual"
+                Layout.fillHeight: true
+                Layout.preferredWidth: backend.layoutMode === "individual" ? 1 : 260
+                radius: 12
+                color: "#070b12"
+                border.color: "#1b293b"
+                clip: true
+
+                Image {
+                    id: frameImage
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width - 18, sourceSize.width)
+                    height: Math.min(parent.height - 18, sourceSize.height)
+                    source: backend.currentFrameSource
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    cache: false
+                }
+
+                Rectangle {
+                    visible: backend.frameCount > 0 && backend.cropTop > 0
+                    x: frameImage.x
+                    y: frameImage.y
+                         + backend.cropTop * frameImage.height / Math.max(1, frameImage.sourceSize.height)
+                    width: frameImage.width
+                    height: 2
+                    color: "#25a7ff"
+                }
+
+                Rectangle {
+                    visible: backend.frameCount > 0 && backend.cropBottom > 0
+                    x: frameImage.x
+                    y: frameImage.y + frameImage.height
+                         - backend.cropBottom * frameImage.height / Math.max(1, frameImage.sourceSize.height)
+                    width: frameImage.width
+                    height: 2
+                    color: "#ff6682"
+                }
+
+                Label {
+                    anchors.centerIn: parent
+                    visible: backend.frameCount === 0
+                    text: "Analiza un video para comenzar"
+                    color: "#59677c"
+                }
             }
 
             Rectangle {
-                visible: backend.frameCount > 0 && backend.cropTop > 0
-                x: preview.x
-                y: preview.y + backend.cropTop * preview.height / Math.max(1, preview.sourceSize.height)
-                width: preview.width
-                height: 2
-                color: "#25a7ff"
-            }
+                visible: backend.layoutMode === "horizontal"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                radius: 12
+                color: "#070b12"
+                border.color: "#1b293b"
+                clip: true
 
-            Rectangle {
-                visible: backend.frameCount > 0 && backend.cropBottom > 0
-                x: preview.x
-                y: preview.y + preview.height - backend.cropBottom * preview.height / Math.max(1, preview.sourceSize.height)
-                width: preview.width
-                height: 2
-                color: "#ff6682"
-            }
+                Flickable {
+                    id: reconstructionView
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    visible: backend.montagePreviewSource !== ""
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    flickableDirection: Flickable.HorizontalFlick
+                    contentWidth: reconstructionImage.width + 12
+                    contentHeight: height
 
-            Label {
-                anchors.centerIn: parent
-                visible: backend.frameCount === 0
-                text: "Analiza un video para empezar"
-                color: "#59677c"
+                    Image {
+                        id: reconstructionImage
+                        x: 6
+                        y: 6
+                        height: Math.max(1, reconstructionView.height - 12)
+                        width: sourceSize.width > 0
+                               ? Math.max(1, sourceSize.width * height / sourceSize.height)
+                               : 1
+                        source: backend.montagePreviewSource
+                        fillMode: Image.PreserveAspectFit
+                        asynchronous: true
+                        cache: false
+                    }
+
+                    ScrollBar.horizontal: ScrollBar {
+                        policy: ScrollBar.AsNeeded
+                    }
+                }
+
+                BusyIndicator {
+                    anchors.centerIn: parent
+                    visible: backend.montageBusy
+                    running: visible
+                    width: 28
+                    height: 28
+                }
+
+                Label {
+                    anchors.centerIn: parent
+                    visible: !backend.montageBusy && backend.montagePreviewSource === ""
+                    text: backend.selectedFrameCount < 2
+                          ? "Selecciona al menos 2 frames"
+                          : "Preparando reconstrucción…"
+                    color: "#59677c"
+                }
             }
         }
 
         Slider {
             Layout.fillWidth: true
-            Layout.preferredHeight: 26
+            Layout.preferredHeight: 24
             from: 0
             to: Math.max(1, backend.frameCount - 1)
             value: backend.currentFrame
@@ -118,6 +196,7 @@ Rectangle {
 
             Button {
                 Layout.preferredWidth: 150
+                Layout.preferredHeight: 36
                 text: "Agregar frame"
                 enabled: backend.frameCount > 0
                          && !backend.busy
@@ -126,7 +205,8 @@ Rectangle {
             }
 
             Button {
-                Layout.preferredWidth: 92
+                Layout.preferredWidth: 90
+                Layout.preferredHeight: 36
                 text: "Vaciar"
                 enabled: backend.selectedFrameCount > 0 && !backend.busy
                 onClicked: backend.clearFrameSelection()
@@ -135,9 +215,10 @@ Rectangle {
             Label {
                 Layout.fillWidth: true
                 text: backend.selectedFrameCount === 0
-                      ? "Elige un frame y agrégalo."
-                      : "Los frames se colocan en el orden seleccionado."
-                color: "#77879f"
+                      ? "Elige un frame y pulsa Agregar frame."
+                      : "Los frames se unen de izquierda a derecha."
+                color: "#7b8ba3"
+                font.pixelSize: 11
                 elide: Text.ElideRight
             }
         }
@@ -145,11 +226,11 @@ Rectangle {
         RowLayout {
             visible: backend.layoutMode === "horizontal"
             Layout.fillWidth: true
-            Layout.preferredHeight: 76
+            Layout.preferredHeight: 66
             spacing: 8
 
             Label {
-                Layout.preferredWidth: 48
+                Layout.preferredWidth: 44
                 text: "Frames"
                 color: "#8290a6"
                 font.pixelSize: 11
@@ -167,8 +248,8 @@ Rectangle {
                 boundsBehavior: Flickable.StopAtBounds
 
                 delegate: Rectangle {
-                    width: 90
-                    height: 70
+                    width: 84
+                    height: 62
                     radius: 8
                     color: "#0d1522"
                     border.color: "#2b3b53"
@@ -186,7 +267,7 @@ Rectangle {
                         anchors.left: parent.left
                         anchors.top: parent.top
                         width: 24
-                        height: 20
+                        height: 19
                         radius: 6
                         color: "#111827"
 
@@ -205,33 +286,26 @@ Rectangle {
                     }
                 }
             }
-
-            Label {
-                visible: backend.selectedFrameCount === 0
-                Layout.fillWidth: true
-                text: "Aquí aparecerán los frames seleccionados."
-                color: "#59677c"
-            }
         }
 
         Rectangle {
             visible: backend.layoutMode === "horizontal" && backend.joinCount > 0
             Layout.fillWidth: true
-            Layout.preferredHeight: 160
+            Layout.preferredHeight: 135
             radius: 10
             color: "#0d1522"
             border.color: "#1b2a3f"
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 10
-                spacing: 6
+                anchors.margins: 9
+                spacing: 5
 
                 RowLayout {
                     Layout.fillWidth: true
 
                     Label {
-                        text: "Solapes"
+                        text: "Solapes por unión"
                         color: "#dbe5f2"
                         font.pixelSize: 12
                         font.bold: true
@@ -240,9 +314,9 @@ Rectangle {
                     Item { Layout.fillWidth: true }
 
                     Label {
-                        text: "Cada unión se ajusta por separado"
+                        text: "Cada frame tiene su propio ajuste"
                         color: "#677990"
-                        font.pixelSize: 10
+                        font.pixelSize: 9
                     }
                 }
 
@@ -251,14 +325,14 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    spacing: 5
+                    spacing: 4
                     model: backend.joinItems
                     boundsBehavior: Flickable.StopAtBounds
 
                     delegate: Rectangle {
                         width: joinList.width
-                        height: 62
-                        radius: 8
+                        height: 48
+                        radius: 7
                         color: "#111a28"
                         border.color: modelData.manual ? "#315f91" : "#1b2a3f"
 
@@ -266,10 +340,10 @@ Rectangle {
                             anchors.fill: parent
                             anchors.leftMargin: 8
                             anchors.rightMargin: 8
-                            spacing: 7
+                            spacing: 6
 
                             Label {
-                                Layout.preferredWidth: 108
+                                Layout.preferredWidth: 98
                                 text: modelData.label
                                 color: "#dbe5f2"
                                 font.pixelSize: 10
@@ -277,63 +351,40 @@ Rectangle {
                                 elide: Text.ElideRight
                             }
 
-                            ColumnLayout {
+                            Slider {
+                                id: seamSlider
                                 Layout.fillWidth: true
-                                spacing: 2
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 6
-
-                                    Label {
-                                        text: modelData.autoOverlap > 0
-                                              ? ("Auto " + modelData.autoOverlap + " px")
-                                              : "Auto —"
-                                        color: modelData.autoReliable ? "#778da8" : "#a37e68"
-                                        font.pixelSize: 9
-                                    }
-
-                                    Label {
-                                        text: modelData.confidence > 0
-                                              ? Math.round(modelData.confidence * 100) + "%"
-                                              : "—"
-                                        color: "#65758c"
-                                        font.pixelSize: 9
-                                    }
-
-                                    Label {
-                                        text: modelData.manual
-                                              ? "Manual"
-                                              : (modelData.autoReliable ? "Auto" : "Manual recomendado")
-                                        color: modelData.manual ? "#7aaef2" : "#697a91"
-                                        font.pixelSize: 9
-                                    }
-                                }
-
-                                Slider {
-                                    id: seamSlider
-                                    Layout.fillWidth: true
-                                    from: 0
-                                    to: Math.max(16, Math.round(backend.montageFrameWidth * 0.70))
-                                    value: modelData.overlap
-                                    enabled: backend.montageFrameWidth > 0 && !backend.montageBusy
-                                    onPressedChanged: {
-                                        if (!pressed)
-                                            backend.setJoinOverlap(modelData.join, value)
-                                    }
+                                from: 0
+                                to: Math.max(16, Math.round(backend.montageFrameWidth * 0.70))
+                                value: modelData.overlap
+                                enabled: backend.montageFrameWidth > 0 && !backend.montageBusy
+                                onPressedChanged: {
+                                    if (!pressed)
+                                        backend.setJoinOverlap(modelData.join, value)
                                 }
                             }
 
-                            Label {
-                                Layout.preferredWidth: 54
-                                text: seamSlider.value + " px"
-                                color: "#cbd5e3"
-                                font.pixelSize: 10
-                                horizontalAlignment: Text.AlignRight
+                            ColumnLayout {
+                                Layout.preferredWidth: 72
+                                spacing: 0
+
+                                Label {
+                                    text: seamSlider.value + " px"
+                                    color: "#cbd5e3"
+                                    font.pixelSize: 9
+                                }
+
+                                Label {
+                                    text: modelData.manual
+                                          ? "Manual"
+                                          : (modelData.autoReliable ? "Auto" : "Ajustar")
+                                    color: modelData.manual ? "#7aaef2" : "#71839c"
+                                    font.pixelSize: 8
+                                }
                             }
 
                             Button {
-                                Layout.preferredWidth: 44
+                                Layout.preferredWidth: 42
                                 Layout.preferredHeight: 24
                                 text: "Auto"
                                 enabled: !backend.montageBusy
@@ -345,81 +396,6 @@ Rectangle {
             }
         }
 
-        Rectangle {
-            visible: backend.layoutMode === "horizontal"
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: 150
-            radius: 12
-            color: "#080c13"
-            border.color: "#1c293b"
-            clip: true
-
-            Flickable {
-                id: montageView
-                anchors.fill: parent
-                anchors.margins: 8
-                visible: backend.montagePreviewSource !== ""
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                flickableDirection: Flickable.HorizontalFlick
-                contentWidth: montageImage.width + 16
-                contentHeight: height
-
-                Image {
-                    id: montageImage
-                    x: 8
-                    y: 8
-                    height: Math.max(1, montageView.height - 16)
-                    width: sourceSize.width > 0
-                           ? Math.max(1, sourceSize.width * height / sourceSize.height)
-                           : 1
-                    source: backend.montagePreviewSource
-                    fillMode: Image.PreserveAspectFit
-                    asynchronous: true
-                    cache: false
-                }
-
-                ScrollBar.horizontal: ScrollBar {
-                    policy: ScrollBar.AsNeeded
-                }
-            }
-
-            BusyIndicator {
-                anchors.centerIn: parent
-                running: backend.montageBusy
-                visible: running
-                width: 30
-                height: 30
-            }
-
-            Label {
-                anchors.centerIn: parent
-                visible: !backend.montageBusy && backend.montagePreviewSource === ""
-                text: backend.selectedFrameCount < 2
-                      ? "Selecciona al menos 2 frames para comenzar."
-                      : "Buscando la zona repetida…"
-                color: "#59677c"
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            Rectangle {
-                visible: backend.montagePreviewSource !== ""
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.margins: 12
-                width: 120
-                height: 22
-                radius: 7
-                color: "#111827"
-
-                Label {
-                    anchors.centerIn: parent
-                    text: "Reconstrucción"
-                    color: "#8ea0bb"
-                    font.pixelSize: 9
-                }
-            }
-        }
+        Item { Layout.fillHeight: true }
     }
 }
