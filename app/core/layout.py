@@ -13,9 +13,9 @@ def validate_cut_points(cut_points: tuple[float, ...]) -> None:
     previous = 0.0
     for point in cut_points:
         if not 0.0 < point < 1.0:
-            raise ValueError("Los cortes deben estar entre 0 % y 100 %.")
+            raise ValueError("Cuts must be between 0% and 100%.")
         if point <= previous:
-            raise ValueError("Los cortes deben estar ordenados y no repetidos.")
+            raise ValueError("Cuts must be ordered and unique.")
         previous = point
 
 
@@ -34,7 +34,7 @@ def split_panorama(
 
     image = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
     if image is None:
-        raise RuntimeError(f"No se pudo leer {image_path.name}.")
+        raise RuntimeError(f"Could not read {image_path.name}.")
 
     height, width = image.shape[:2]
     positions = [0, *[int(round(width * point)) for point in cut_points], width]
@@ -57,14 +57,14 @@ def split_panorama(
             segment,
             [cv2.IMWRITE_JPEG_QUALITY, 95],
         ):
-            raise RuntimeError(f"No se pudo guardar {target.name}.")
+            raise RuntimeError(f"Could not save {target.name}.")
 
         segments.append(target)
 
         if on_progress:
             on_progress(
                 (index + 1) / total,
-                f"Separando la partitura ({index + 1}/{total})…",
+                f"Splitting score ({index + 1}/{total})…",
             )
 
     return tuple(segments)
