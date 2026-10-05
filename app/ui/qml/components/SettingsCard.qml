@@ -257,6 +257,7 @@ Rectangle {
                 }
 
                 Label {
+                    visible: backend.layoutMode === "individual"
                     text: "Rango de frames"
                     color: "#8290a6"
                     font.pixelSize: 12
@@ -264,6 +265,7 @@ Rectangle {
                 }
 
                 Label {
+                    visible: backend.layoutMode === "individual"
                     text: (backend.rangeStart + 1) + " → " + (backend.rangeEnd + 1)
                     color: "#cbd5e3"
                     font.pixelSize: 12
@@ -271,6 +273,7 @@ Rectangle {
                 }
 
                 Slider {
+                    visible: backend.layoutMode === "individual"
                     Layout.fillWidth: true
                     Layout.preferredHeight: 24
                     from: 0
@@ -281,6 +284,7 @@ Rectangle {
                 }
 
                 Slider {
+                    visible: backend.layoutMode === "individual"
                     Layout.fillWidth: true
                     Layout.preferredHeight: 24
                     from: 0
