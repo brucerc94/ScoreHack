@@ -17,7 +17,8 @@ La aplicación usa **Qt 6 + QML** para una interfaz fluida y moderna. PySide6 es
 - Permite definir el rango de frames a procesar.
 - Permite abrir una vista previa temporal del PDF antes de guardarlo.
 - Permite seleccionar manualmente frames concretos y ver en la UI la secuencia elegida.
-- Permite reconstruir partituras horizontalmente detectando automáticamente las zonas repetidas entre frames y permitiendo corregir cada unión manualmente desde la UI.
+- Permite reconstruir partituras horizontalmente detectando zonas repetidas entre frames y permitiendo corregir cada unión manualmente desde la UI.
+- Permite definir manualmente los cortes de página sobre la reconstrucción y probar la distribución con **Vista previa** antes de generar el PDF.
 - Elimina frames consecutivos visualmente repetidos mediante SSIM después de estabilizarlos.
 - Genera páginas A4 con una cantidad configurable de partituras por página.
 - Guarda únicamente el PDF final en la ruta elegida.
@@ -34,6 +35,7 @@ app/
 │   ├── frame_extractor.py
 │   ├── motion_tracker.py
 │   ├── stitcher.py
+│   ├── layout.py
 │   ├── models.py
 │   ├── pdf_exporter.py
 │   ├── pipeline.py
@@ -83,8 +85,10 @@ python -m pytest
 3. Pulsa **Analizar video** para extraer los frames sin fijar todavía la zona de seguimiento.
 4. Ajusta recorte, frame de vista previa y rango. La corrección de movimiento usa ese recorte como región de seguimiento cuando generas el PDF y puedes activar **Quitar resaltado móvil**.
 5. Selecciona manualmente los frames que quieras conservar. La aplicación intenta detectar automáticamente la zona repetida entre cada par.
-6. En cada unión puedes revisar el solape detectado, cambiarlo con el control **Solape** y volver a **Auto** cuando quieras recuperar la detección.
-7. Revisa la reconstrucción horizontal en vivo y pulsa **Vista previa** o **Generar PDF**.
+6. En cada unión puedes revisar el solape detectado y cambiarlo manualmente cuando sea necesario.
+7. En **Cortes de página**, agrega cortes desde la posición visible o arrastra las líneas sobre la reconstrucción.
+8. Elige cuántos segmentos van por página y pulsa **Vista previa**. La vista previa genera el PDF con exactamente esos cortes; corrige y vuelve a previsualizar hasta quedar conforme.
+9. Pulsa **Generar PDF** para guardar el resultado definitivo.
 
 ## Nota técnica
 
