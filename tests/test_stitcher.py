@@ -78,6 +78,6 @@ def test_horizontal_stitch_accepts_manual_overlap() -> None:
 
         stitched = cv2.imread(str(result.output_path), cv2.IMREAD_COLOR)
         assert stitched is not None
-        assert result.auto_overlaps[0] == result.auto_overlaps[0]
+        assert result.auto_overlaps[0] > 0
         assert result.effective_overlaps == (180,)
         assert stitched.shape[1] == 820
