@@ -66,7 +66,7 @@ class AppController(QObject):
         self._current_join = 0
         self._auto_overlaps: tuple[int, ...] = ()
         self._join_confidences: tuple[float, ...] = ()
-        self._manual_overlaps: dict[int, int] = {}
+        self._manual_overlaps: dict[tuple[int, int], int] = {}
         self._montage_frame_width = 0
         self._montage_preview_source = ""
         self._montage_busy = False
@@ -201,37 +201,26 @@ class AppController(QObject):
     def joinCount(self) -> int:
         return max(0, len(self._selected_frames) - 1)
 
-    @Property(int, notify=joinChanged)
-    def currentJoin(self) -> int:
-        return self._current_join
-
-    @Property(str, notify=joinChanged)
-    def currentJoinLabel(self) -> str:
-        if self.joinCount == 0:
-            return "Sin uniones"
-        first = self._selected_frames[self._current_join] + 1
-        second = self._selected_frames[self._current_join + 1] + 1
-        return f"Frame {first} → Frame {second}"
-
-    @Property(int, notify=joinChanged)
-    def currentOverlap(self) -> int:
-        return self._overlap_for_join(self._current_join)
-
-    @Property(int, notify=joinChanged)
-    def currentAutoOverlap(self) -> int:
-        if 0 <= self._current_join < len(self._auto_overlaps):
-            return self._auto_overlaps[self._current_join]
-        return 0
-
-    @Property(float, notify=joinChanged)
-    def currentJoinConfidence(self) -> float:
-        if 0 <= self._current_join < len(self._join_confidences):
-            return self._join_confidences[self._current_join]
-        return 0.0
-
-    @Property(int, notify=joinChanged)
-    def montageFrameWidth(self) -> int:
-        return self._montage_frame_width
+    @Property(list, notify=joinChanged)
+    def joinItems(self) -> list[dict]:
+        items = []
+        for join in range(self.joinCount):
+            first, second = self._selected_frames[join], self._selected_frames[join + 1]
+            manual = self._manual_overlaps.get((first, second))
+            auto = self._auto_overlaps[join] if join < len(self._auto_overlaps) else 0
+            confidence = self._join_confidences[join] if join < len(self._join_confidences) else 0.0
+            effective = manual if manual is not None else (
+                auto if confidence >= 0.78 else 0
+            )
+            items.append({
+                "join": join,
+                "label": f"Frame {first + 1} → {second + 1}",
+                "overlap": effective,
+                "autoOverlap": auto,
+                "confidence": confidence,
+                "manual": manual is not None,
+            })
+        return items
 
     @Slot(str)
     def setSourceText(self, value: str) -> None:
@@ -274,9 +263,7 @@ class AppController(QObject):
             self._selected_frames.remove(self._current_frame)
         else:
             self._selected_frames.append(self._current_frame)
-            self._current_join = max(0, len(self._selected_frames) - 2)
 
-        self._manual_overlaps.clear()
         self._normalize_join_state()
         self._emit_selection_state()
 
@@ -285,8 +272,12 @@ class AppController(QObject):
         if not 0 <= position < len(self._selected_frames):
             return
 
-        self._selected_frames.pop(position)
-        self._manual_overlaps.clear()
+        removed = self._selected_frames.pop(position)
+        self._manual_overlaps = {
+            pair: value
+            for pair, value in self._manual_overlaps.items()
+            if removed not in pair
+        }
         self._normalize_join_state()
         self._emit_selection_state()
 
@@ -298,41 +289,28 @@ class AppController(QObject):
         self._reset_montage_state()
         self._emit_selection_state()
 
-    @Slot(int)
-    def setCurrentJoin(self, value: int) -> None:
-        if self.joinCount == 0:
-            return
-        new_value = max(0, min(int(value), self.joinCount - 1))
-        if new_value != self._current_join:
-            self._current_join = new_value
-            self.joinChanged.emit()
-
-    @Slot(float)
-    def setCurrentOverlap(self, value: float) -> None:
-        if self.joinCount == 0 or self._montage_frame_width <= 0:
+    @Slot(int, float)
+    def setJoinOverlap(self, join: int, value: float) -> None:
+        if not 0 <= join < self.joinCount or self._montage_frame_width <= 0:
             return
 
+        first, second = self._selected_frames[join], self._selected_frames[join + 1]
         minimum = max(8, int(self._montage_frame_width * 0.05))
         maximum = max(minimum, int(self._montage_frame_width * 0.90))
         overlap = max(minimum, min(int(round(value)), maximum))
-        self._manual_overlaps[self._current_join] = overlap
+        self._manual_overlaps[(first, second)] = overlap
         self.joinChanged.emit()
         self._schedule_montage_refresh()
 
-    @Slot()
-    def resetCurrentOverlap(self) -> None:
-        if self._current_join in self._manual_overlaps:
-            del self._manual_overlaps[self._current_join]
+    @Slot(int)
+    def resetJoinOverlap(self, join: int) -> None:
+        if not 0 <= join < self.joinCount:
+            return
+        pair = (self._selected_frames[join], self._selected_frames[join + 1])
+        if pair in self._manual_overlaps:
+            del self._manual_overlaps[pair]
             self.joinChanged.emit()
             self._schedule_montage_refresh()
-
-    @Slot()
-    def previousJoin(self) -> None:
-        self.setCurrentJoin(self._current_join - 1)
-
-    @Slot()
-    def nextJoin(self) -> None:
-        self.setCurrentJoin(self._current_join + 1)
 
     @Slot(bool)
     def setRemoveOverlays(self, value: bool) -> None:
@@ -457,13 +435,11 @@ class AppController(QObject):
             overlap_overrides=self._effective_overlaps(),
         )
 
-    def _effective_overlaps(self) -> tuple[int, ...]:
-        if self.joinCount == 0:
-            return ()
-        if len(self._auto_overlaps) != self.joinCount:
-            return ()
+    def _effective_overlaps(self) -> tuple[int | None, ...]:
         return tuple(
-            self._manual_overlaps.get(index, self._auto_overlaps[index])
+            self._manual_overlaps.get(
+                (self._selected_frames[index], self._selected_frames[index + 1])
+            )
             for index in range(self.joinCount)
         )
 
@@ -476,15 +452,7 @@ class AppController(QObject):
 
     def _normalize_join_state(self) -> None:
         join_count = self.joinCount
-        self._current_join = 0 if join_count == 0 else max(
-            0,
-            min(self._current_join, join_count - 1),
-        )
-        self._manual_overlaps = {
-            index: value
-            for index, value in self._manual_overlaps.items()
-            if 0 <= index < join_count
-        }
+        self._current_join = 0 if join_count == 0 else min(self._current_join, join_count - 1)
         self._auto_overlaps = ()
         self._join_confidences = ()
 
