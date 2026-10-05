@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from threading import Event
 from typing import Callable
@@ -15,6 +16,7 @@ from .pdf_exporter import export_pdf
 from .workspace import Workspace
 
 EventCallback = Callable[[str, object], None]
+logger = logging.getLogger("scorecapture")
 
 
 class ExtractionPipeline:
@@ -25,8 +27,19 @@ class ExtractionPipeline:
         self.frame_paths: tuple[Path, ...] = ()
         self.video_path: Path | None = None
         self.on_event = on_event
+        self._last_console_progress = -1
 
     def _emit(self, name: str, payload: object = None) -> None:
+        if name == "status":
+            logger.info(str(payload))
+            self._last_console_progress = -1
+        elif name == "progress":
+            progress, message = payload
+            percent = int(float(progress) * 100)
+            if percent == 100 or percent - self._last_console_progress >= 10:
+                logger.info("[%3d%%] %s", percent, message)
+                self._last_console_progress = percent
+
         if self.on_event:
             self.on_event(name, payload)
 
