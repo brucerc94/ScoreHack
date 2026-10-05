@@ -171,7 +171,7 @@ Rectangle {
                     id: layoutCombo
                     Layout.fillWidth: true
                     Layout.preferredHeight: 34
-                    model: ["Individual", "Unir horizontal"]
+                    model: ["Individual", "Unión horizontal"]
                     currentIndex: backend.layoutMode === "horizontal" ? 1 : 0
                     enabled: !backend.busy
                     onActivated: backend.setLayoutMode(currentIndex === 1 ? "horizontal" : "individual")
@@ -179,7 +179,7 @@ Rectangle {
 
                 Label {
                     text: backend.layoutMode === "horizontal"
-                          ? "Selecciona frames manualmente para construir una partitura ancha."
+                          ? "Selecciona frames y controla visualmente la unión horizontal."
                           : backend.selectedFrameCount > 0
                             ? "La selección manual reemplaza el rango de frames."
                             : "Sin selección manual: se usa el rango indicado."
