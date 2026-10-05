@@ -10,6 +10,7 @@ import numpy as np
 from .models import MontageResult
 
 ProgressCallback = Callable[[float, str], None]
+MIN_AUTO_CONFIDENCE = 0.78
 
 
 def _read(path: Path) -> np.ndarray:
@@ -151,7 +152,7 @@ def _validate_overrides(
 def stitch_horizontal(
     image_paths: Iterable[Path],
     output_path: Path,
-    overlap_overrides: tuple[int, ...] = (),
+    overlap_overrides: tuple[int | None, ...] = (),
     on_progress: ProgressCallback | None = None,
     cancel_event: Event | None = None,
 ) -> MontageResult:
@@ -188,10 +189,15 @@ def stitch_horizontal(
             )
 
     effective_overlaps = tuple(
-        overlap_overrides[index]
-        if overlap_overrides
-        else auto_overlaps[index]
+        auto_overlaps[index]
+        if not overlap_overrides or overlap_overrides[index] is None
+        else overlap_overrides[index]
         for index in range(len(auto_overlaps))
+    )
+
+    effective_overlaps = tuple(
+        overlap if confidence >= MIN_AUTO_CONFIDENCE else 0
+        for overlap, confidence in zip(effective_overlaps, confidences)
     )
 
     panorama = images[0]
