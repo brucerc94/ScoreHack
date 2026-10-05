@@ -153,6 +153,7 @@ class ExtractionPipeline:
             start_index=0,
             end_index=None,
             on_progress=lambda p, m: self._emit("progress", (p, m)),
+            cancel_event=cancel_event,
         )
         self._check_cancel(cancel_event)
 
@@ -192,6 +193,7 @@ class ExtractionPipeline:
             output_path,
             overlap_overrides=overlap_overrides,
             on_progress=lambda p, m: self._emit("progress", (p, m)),
+            cancel_event=cancel_event,
         )
 
     def _build_unique_images(
