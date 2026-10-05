@@ -70,20 +70,18 @@ class ExtractionPipeline:
         self._emit("prepared", result)
         return result
 
-    def generate(
+    def _build_unique_images(
         self,
         settings: ExtractionSettings,
-        output_pdf: Path,
         cancel_event: Event | None = None,
-    ) -> Path:
-        settings.validate()
+    ) -> tuple[Path, ...]:
         if not self.frame_paths:
             raise RuntimeError("Primero debes analizar un video.")
 
         self._check_cancel(cancel_event)
 
         working_frames = self.frame_paths
-        if getattr(settings, "stabilize_motion", True):
+        if settings.stabilize_motion:
             self._emit("status", "Siguiendo movimiento dentro del recorte seleccionado…")
             working_frames = stabilize_frames(
                 self.frame_paths,
@@ -95,6 +93,7 @@ class ExtractionPipeline:
             )
             self._check_cancel(cancel_event)
 
+        self._emit("status", "Aplicando recorte seleccionado…")
         cropped = crop_frames(
             working_frames,
             self.workspace.crops,
@@ -106,6 +105,7 @@ class ExtractionPipeline:
         )
         self._check_cancel(cancel_event)
 
+        self._emit("status", "Eliminando fotogramas repetidos…")
         unique = remove_consecutive_duplicates(
             cropped,
             settings.duplicate_threshold,
@@ -114,7 +114,15 @@ class ExtractionPipeline:
         self._check_cancel(cancel_event)
         if not unique:
             raise RuntimeError("No quedaron partituras después de eliminar duplicados.")
+        return unique
 
+    def _export(
+        self,
+        settings: ExtractionSettings,
+        output_pdf: Path,
+        cancel_event: Event | None = None,
+    ) -> Path:
+        unique = self._build_unique_images(settings, cancel_event)
         self._emit("status", "Generando PDF…")
         output = export_pdf(
             unique,
@@ -124,7 +132,27 @@ class ExtractionPipeline:
             margin_pt=settings.margin_pt,
         )
         self._emit("progress", (1.0, "PDF generado."))
+        return output
+
+    def generate(
+        self,
+        settings: ExtractionSettings,
+        output_pdf: Path,
+        cancel_event: Event | None = None,
+    ) -> Path:
+        settings.validate()
+        output = self._export(settings, output_pdf, cancel_event)
         self._emit("generated", output)
+        return output
+
+    def preview(
+        self,
+        settings: ExtractionSettings,
+        cancel_event: Event | None = None,
+    ) -> Path:
+        settings.validate()
+        output = self._export(settings, self.workspace.preview_pdf, cancel_event)
+        self._emit("previewed", output)
         return output
 
     def close(self) -> None:
