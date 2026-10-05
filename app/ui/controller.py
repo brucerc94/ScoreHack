@@ -271,6 +271,7 @@ class AppController(QObject):
             self._selected_frames.append(self._current_frame)
             self._current_join = max(0, len(self._selected_frames) - 2)
 
+        self._manual_overlaps.clear()
         self._normalize_join_state()
         self._emit_selection_state()
 
@@ -279,13 +280,8 @@ class AppController(QObject):
         if not 0 <= position < len(self._selected_frames):
             return
 
-        removed_join = max(0, position - 1)
         self._selected_frames.pop(position)
-        self._manual_overlaps = {
-            index if index < removed_join else index - 1: value
-            for index, value in self._manual_overlaps.items()
-            if index != removed_join
-        }
+        self._manual_overlaps.clear()
         self._normalize_join_state()
         self._emit_selection_state()
 
@@ -500,7 +496,6 @@ class AppController(QObject):
         self._montage_timer.stop()
         self._montage_generation += 1
         self._montage_cancel_event.set()
-        self._selected_frames = list(self._selected_frames)
         self._current_join = 0
         self._auto_overlaps = ()
         self._join_confidences = ()
