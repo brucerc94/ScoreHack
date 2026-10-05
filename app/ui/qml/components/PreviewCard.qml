@@ -17,6 +17,7 @@ Rectangle {
 
         RowLayout {
             Layout.fillWidth: true
+            Layout.preferredHeight: 24
 
             Label {
                 text: backend.layoutMode === "horizontal"
@@ -29,18 +30,34 @@ Rectangle {
 
             Item { Layout.fillWidth: true }
 
+            Rectangle {
+                visible: backend.layoutMode === "horizontal"
+                Layout.preferredWidth: 86
+                Layout.preferredHeight: 24
+                radius: 8
+                color: "#182233"
+
+                Label {
+                    anchors.centerIn: parent
+                    text: backend.selectedFrameCount + " seleccionados"
+                    color: "#8ea0bb"
+                    font.pixelSize: 10
+                }
+            }
+
             Label {
                 text: backend.frameCount > 0
                       ? ("Frame " + (backend.currentFrame + 1) + " / " + backend.frameCount)
                       : "Sin video"
                 color: "#70819a"
+                font.pixelSize: 11
             }
         }
 
         Rectangle {
             Layout.fillWidth: true
+            Layout.preferredHeight: backend.layoutMode === "horizontal" ? 165 : -1
             Layout.fillHeight: backend.layoutMode === "individual"
-            Layout.preferredHeight: backend.layoutMode === "horizontal" ? 190 : -1
             radius: 12
             color: "#080c13"
             border.color: "#1c293b"
@@ -118,118 +135,176 @@ Rectangle {
             Label {
                 Layout.fillWidth: true
                 text: backend.selectedFrameCount === 0
-                      ? "Selecciona un frame y pulsa Agregar frame."
-                      : backend.selectedFrameCount + " frames seleccionados"
+                      ? "Elige un frame y agrégalo al conjunto."
+                      : "Orden: los frames se unirán de izquierda a derecha."
                 color: "#77879f"
                 elide: Text.ElideRight
             }
         }
 
-        ListView {
-            visible: backend.layoutMode === "horizontal" && backend.selectedFrameCount > 0
+        RowLayout {
+            visible: backend.layoutMode === "horizontal"
             Layout.fillWidth: true
-            Layout.preferredHeight: 72
-            orientation: ListView.Horizontal
-            spacing: 6
-            clip: true
-            model: backend.selectedFrameSources
+            Layout.preferredHeight: 76
+            spacing: 8
 
-            delegate: Rectangle {
-                width: 92
-                height: 68
-                radius: 8
-                color: "#0d1522"
-                border.color: "#2b3b53"
+            Label {
+                Layout.preferredWidth: 55
+                text: "Frames"
+                color: "#8290a6"
+                font.pixelSize: 11
+                font.bold: true
+            }
 
-                Image {
-                    anchors.fill: parent
-                    anchors.margins: 3
-                    source: modelData
-                    fillMode: Image.PreserveAspectFit
-                    asynchronous: true
-                    cache: false
-                }
+            ListView {
+                id: selectedFrames
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                orientation: ListView.Horizontal
+                spacing: 6
+                clip: true
+                model: backend.selectedFrameSources
+                boundsBehavior: Flickable.StopAtBounds
 
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    width: 24
-                    height: 20
-                    radius: 6
-                    color: "#111827"
+                delegate: Rectangle {
+                    width: 90
+                    height: 70
+                    radius: 8
+                    color: "#0d1522"
+                    border.color: "#2b3b53"
 
-                    Label {
-                        anchors.centerIn: parent
-                        text: index + 1
-                        color: "#cbd5e3"
-                        font.pixelSize: 10
-                        font.bold: true
+                    Image {
+                        anchors.fill: parent
+                        anchors.margins: 3
+                        source: modelData
+                        fillMode: Image.PreserveAspectFit
+                        asynchronous: true
+                        cache: false
+                    }
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        width: 24
+                        height: 20
+                        radius: 6
+                        color: "#111827"
+
+                        Label {
+                            anchors.centerIn: parent
+                            text: index + 1
+                            color: "#cbd5e3"
+                            font.pixelSize: 10
+                            font.bold: true
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: backend.removeSelectedFrame(index)
                     }
                 }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: backend.removeSelectedFrame(index)
-                }
             }
+
+            Label {
+                visible: backend.selectedFrameCount === 0
+                Layout.fillWidth: true
+                text: "Aquí aparecerán los frames seleccionados."
+                color: "#59677c"
+                elide: Text.ElideRight
+            }
+        }
+
+        Rectangle {
+            visible: backend.layoutMode === "individual"
+            Layout.fillWidth: false
+            Layout.fillHeight: true
+            Layout.preferredWidth: 1
+            color: "transparent"
         }
 
         Rectangle {
             visible: backend.layoutMode === "horizontal"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 160
+            Layout.minimumHeight: 190
             radius: 12
             color: "#080c13"
             border.color: "#1c293b"
             clip: true
 
-            ScrollView {
+            RowLayout {
                 anchors.fill: parent
                 anchors.margins: 8
-                clip: true
-                ScrollBar.horizontal.policy: ScrollBar.AsNeeded
-                ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                spacing: 0
 
-                Image {
-                    id: montageImage
-                    source: backend.montagePreviewSource
-                    asynchronous: true
-                    cache: false
-                    fillMode: Image.PreserveAspectFit
-                    width: Math.max(sourceSize.width, parent.width)
-                    height: Math.max(sourceSize.height, parent.height)
+                Label {
+                    visible: backend.montagePreviewSource === "" && !backend.montageBusy
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    text: backend.selectedFrameCount < 2
+                          ? "Selecciona al menos 2 frames para construir la partitura."
+                          : "Preparando la previsualización…"
+                    color: "#59677c"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                Flickable {
+                    id: montageView
+                    visible: backend.montagePreviewSource !== ""
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    flickableDirection: Flickable.HorizontalFlick
+                    contentWidth: montageImage.width + 16
+                    contentHeight: height
+
+                    Image {
+                        id: montageImage
+                        x: 8
+                        y: 8
+                        height: Math.max(1, montageView.height - 16)
+                        width: sourceSize.width > 0
+                               ? Math.max(1, sourceSize.width * height / sourceSize.height)
+                               : 1
+                        source: backend.montagePreviewSource
+                        fillMode: Image.Stretch
+                        asynchronous: true
+                        cache: false
+                    }
+
+                    ScrollBar.horizontal: ScrollBar {
+                        policy: ScrollBar.AsNeeded
+                    }
+                }
+
+                BusyIndicator {
+                    visible: backend.montageBusy
+                    running: backend.montageBusy
+                    Layout.alignment: Qt.AlignCenter
+                    Layout.preferredWidth: 30
+                    Layout.preferredHeight: 30
                 }
             }
 
-            BusyIndicator {
-                anchors.centerIn: parent
-                running: backend.montageBusy
-                visible: running
-                width: 30
-                height: 30
-            }
-
-            Label {
-                anchors.centerIn: parent
-                visible: !backend.montageBusy && backend.montagePreviewSource === ""
-                text: backend.selectedFrameCount < 2
-                      ? "Selecciona al menos 2 frames para comenzar."
-                      : "Preparando unión horizontal…"
-                color: "#59677c"
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            Label {
+            Rectangle {
+                visible: backend.montagePreviewSource !== ""
                 anchors.left: parent.left
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: 10
-                anchors.bottomMargin: 8
-                text: backend.montagePreviewSource !== ""
-                      ? "Previsualización horizontal"
-                      : ""
-                color: "#71829a"
-                font.pixelSize: 10
+                anchors.top: parent.top
+                anchors.margins: 12
+                width: 118
+                height: 22
+                radius: 7
+                color: "#111827"
+
+                Label {
+                    anchors.centerIn: parent
+                    text: "Resultado horizontal"
+                    color: "#8ea0bb"
+                    font.pixelSize: 9
+                }
             }
         }
     }
