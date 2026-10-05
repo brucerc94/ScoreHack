@@ -78,7 +78,7 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 600
+                    Layout.preferredHeight: 635
                     spacing: 14
 
                     PreviewCard {
@@ -90,7 +90,7 @@ ApplicationWindow {
                 }
 
                 ActivityCard {
-                    Layout.preferredHeight: 180
+                    Layout.preferredHeight: 145
                 }
 
                 Item { Layout.preferredHeight: 10 }
