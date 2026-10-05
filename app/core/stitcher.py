@@ -28,11 +28,11 @@ def _resize_height(image: np.ndarray, height: int) -> np.ndarray:
 
 def _match_overlap(left: np.ndarray, right: np.ndarray) -> tuple[int, float]:
     """
-    Estima el solape usando coincidencia de plantillas grandes y consenso.
+    Estimates overlap using large-template matching and consensus.
 
-    Solo se consideran solapes razonables para una partitura que se desplaza
-    lateralmente. Una detección de baja confianza se devuelve como sugerencia,
-    pero no se aplica automáticamente.
+    Only reasonable overlaps for a laterally moving score are considered.
+    Low-confidence detections are returned as suggestions but are not
+    applied automatically.
     """
     height, left_width = left.shape[:2]
     right_width = right.shape[1]
@@ -113,7 +113,7 @@ def _blend_pair(
 
     result[:, :left_end] = left[:, :left_end]
 
-    # En el solape usamos una transición corta para evitar doble imagen visible.
+    # Use a short blend in the overlap to avoid a visible duplicate image.
     fade = np.linspace(0.0, 1.0, overlap, dtype=np.float32)[None, :, None]
     left_part = left[:, left_end:].astype(np.float32)
     right_part = right[:, :overlap].astype(np.float32)
@@ -160,10 +160,10 @@ def stitch_horizontal(
     cancel_event: Event | None = None,
 ) -> MontageResult:
     """
-    Reconstruye una partitura horizontalmente.
+    Reconstructs a score horizontally.
 
-    Por defecto detecta el solape entre cada par consecutivo. Cuando el usuario
-    entrega ajustes manuales, estos reemplazan únicamente la unión correspondiente.
+    By default, it detects overlap between consecutive frames. Manual
+    overrides replace only the corresponding join.
     """
     paths = list(image_paths)
     if len(paths) < 2:
