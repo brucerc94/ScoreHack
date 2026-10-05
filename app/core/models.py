@@ -17,8 +17,6 @@ class ExtractionSettings:
     sheets_per_page: int = 4
     page_size: str = "A4"
     margin_pt: float = 28.0
-    stabilize_motion: bool = True
-    remove_overlays: bool = True
     layout_mode: str = "individual"
     selected_frames: tuple[int, ...] = ()
     overlap_overrides: tuple[int | None, ...] = ()
