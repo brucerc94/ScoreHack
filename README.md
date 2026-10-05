@@ -1,8 +1,12 @@
 <div align="center">
 
+<img src="./icon.ico" alt="ScoreCapture icon" width="96">
+
 # ScoreCapture
 
 ### Reconstruct sheet music from video into printable A4 PDFs
+
+<p><strong>Extract → Select → Reconstruct → Cut → Preview → Export</strong></p>
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Qt](https://img.shields.io/badge/Qt-6-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
@@ -11,145 +15,386 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/brucerc94/ExtractorPartiturasYoutube/tests.yml?branch=main&label=CI)](.github/workflows/tests.yml)
 
-ScoreCapture is a Windows-focused desktop application for turning on-screen sheet music from **YouTube videos or local video files** into clean, printable PDF pages.
+ScoreCapture is a Windows-focused desktop application for turning sheet music displayed in YouTube videos or local video files into clean, printable PDF pages.
 
-It is built for a common real-world case: the score is visible in a video, but the viewport moves as the music progresses. Instead of guessing the final layout, ScoreCapture gives the user precise control over **frame selection, overlap, page cuts, and A4 pagination**.
+It is designed for videos where the score moves across the screen as the music progresses. The application keeps the important visual decisions in the user's hands: frame selection, overlap, page cuts, and final A4 composition.
 
 </div>
 
 ---
 
-## Why ScoreCapture?
+## What ScoreCapture Does
 
-Many sheet-music videos are not a sequence of ready-to-print pages. The camera or screen viewport can move sideways, frames can overlap, and the useful score area can occupy only part of the video.
+Many sheet-music videos do not contain independent pages. Instead, the viewer sees a moving viewport over one long score.
 
-ScoreCapture treats the task as a reconstruction workflow:
-
-**Video → Frames → Crop → Select → Reconstruct → Cut → Preview → A4 PDF**
-
-The important decisions remain explicit and editable.
-
----
-
-## Features
-
-### Capture
-
-- **YouTube input** through yt-dlp
-- **Local video input**
-- Local video **drag & drop**
-- Configurable frame extraction interval
-- Frame-by-frame preview
-
-### Reconstruction
-
-- Manual frame selection in the exact order you want
-- Horizontal reconstruction for moving scores
-- **Independent overlap control for every frame pair**
-- Automatic overlap estimation as an assistive suggestion
-- Manual override whenever automatic detection is unreliable
-- Horizontal preview with navigation
-
-### Page layout
-
-- Manual page-cut editing directly on the reconstruction
-- Draggable visual cut markers
-- Numeric cut controls
-- User-defined segments per page
-- **A4 as the final document canvas**
-- Consistent system sizing across a page
-- Explicit preview before final PDF generation
-
-### Application
-
-- Qt 6 + QML interface
-- Background processing
-- Progress reporting and runtime logging
-- Temporary workspace with no administrator privileges
-- Modular Python architecture
-- Automated tests with GitHub Actions
-
----
-
-## Workflow
-
-| Step | What you do | Result |
-| --- | --- | --- |
-| **1. Source** | Choose YouTube or a local video | Video is loaded |
-| **2. Analyze** | Extract frames at the selected interval | Frame timeline becomes available |
-| **3. Crop** | Set the top and bottom crop | Only the useful score area is kept |
-| **4. Select** | Add the frames that belong to the score | Ordered frame sequence |
-| **5. Reconstruct** | Adjust each join's overlap | Continuous horizontal score |
-| **6. Cut** | Place page cuts where you want them | User-defined score systems |
-| **7. Preview** | Choose the number of systems per A4 page | Review the final document layout |
-| **8. Export** | Generate the PDF | Printable A4 score |
-
----
-
-## The reconstruction model
-
-A moving score typically looks like this:
+ScoreCapture turns that into a controlled reconstruction workflow:
 
 ~~~text
-Frame 01      Frame 02      Frame 03      Frame 04
-┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
-│         │   │         │   │         │   │         │
-│  SCORE  │───│  SCORE  │───│  SCORE  │───│  SCORE  │
-│         │   │         │   │         │   │         │
-└─────────┘   └─────────┘   └─────────┘   └─────────┘
-       ↑             ↑             ↑
-     Join 1        Join 2        Join 3
+Video
+  ↓
+Frame extraction
+  ↓
+Crop the score area
+  ↓
+Select useful frames
+  ↓
+Reconstruct horizontally
+  ↓
+Adjust frame-to-frame joins
+  ↓
+Place page cuts
+  ↓
+Preview the A4 document
+  ↓
+Export PDF
 ~~~
 
-Each join has its own overlap value:
+The result is a raster-based PDF intended for printing or archiving.
+
+---
+
+## Highlights
+
+| Capability | Description |
+| --- | --- |
+| YouTube input | Download a source video through yt-dlp |
+| Local video | Open common video formats directly |
+| Frame extraction | Sample the video at a configurable interval |
+| Cropping | Control top and bottom crop independently |
+| Frame selection | Build the reconstruction manually and in order |
+| Reconstruction | Join frames horizontally into one score |
+| Join control | Adjust every frame pair independently |
+| Auto alignment | Use automatic overlap estimation as a starting point |
+| Page cuts | Add and drag manual page boundaries |
+| A4 output | Compose the final document on a fixed A4 canvas |
+| Preview | Review the document before final export |
+| Windows workflow | Run or build with the included batch scripts |
+
+---
+
+# Step-by-Step User Guide
+
+## 1. Start the application
+
+### Windows
+
+Run:
+
+~~~text
+run.bat
+~~~
+
+The launcher creates or reuses the virtual environment, installs missing dependencies, and starts ScoreCapture.
+
+For developers who prefer to run the project manually:
+
+~~~text
+python -m venv venv
+venv\Scripts\activate
+python -m pip install -r requirements.txt
+python -m app.main
+~~~
+
+---
+
+## 2. Select your video
+
+At the top of the application you will find the source selector.
+
+### YouTube
+
+1. Select **YouTube**.
+2. Paste the video URL.
+3. Click **Analyze video**.
+4. Wait until the frames are extracted.
+
+### Local video
+
+1. Select **Local video**.
+2. Click **Browse**, or drag the video into the drop area.
+3. Confirm that the filename is displayed.
+4. Click **Analyze video**.
+
+Supported local containers include common formats such as MP4, MKV, AVI, MOV, WEBM, and M4V.
+
+---
+
+## 3. Choose the frame interval
+
+The **Frame interval** determines how often ScoreCapture samples the video.
+
+Examples:
+
+~~~text
+0.5 sec → more frames
+1.0 sec → balanced starting point
+2.0 sec → fewer frames
+~~~
+
+Use a smaller interval when the score moves quickly or when each frame contains only a small amount of new information.
+
+Use a larger interval when the score changes slowly and you want fewer frames to review.
+
+---
+
+## 4. Crop the video to the score area
+
+The **Crop** section has two independent controls:
+
+- **Top** — removes pixels from the top.
+- **Bottom** — removes pixels from the bottom.
+
+Use them to remove video controls, borders, empty space, or other material that is not part of the score.
+
+The objective is to leave only the useful sheet-music area.
+
+~~~text
+┌──────────────────────────────────────┐
+│              SHEET MUSIC             │
+│                                      │
+│       musical notation and score     │
+│                                      │
+└──────────────────────────────────────┘
+~~~
+
+These crop values are applied when the selected frames are processed.
+
+---
+
+## 5. Inspect the extracted frames
+
+Use the frame slider in the main workspace to move through the extracted frames.
+
+Look for frames that:
+
+- contain a useful portion of the score,
+- overlap with the previous portion,
+- continue the score in the correct direction,
+- do not contain unnecessary transitions or unrelated video content.
+
+This is where you decide which frames should form the final reconstruction.
+
+---
+
+## 6. Switch to Horizontal Join
+
+For videos where the score moves sideways, open **Mode** and choose:
+
+**Horizontal join**
+
+The reconstruction workspace becomes available.
+
+This mode is intended for a moving viewport over a longer score, rather than independent complete pages.
+
+---
+
+## 7. Select the frames
+
+Find the first useful frame and click:
+
+**Add frame**
+
+Move to the next useful frame and add it.
+
+Continue in the order in which the score should appear.
+
+Example:
+
+~~~text
+Frame 12
+   ↓
+Frame 18
+   ↓
+Frame 25
+   ↓
+Frame 31
+   ↓
+Frame 39
+~~~
+
+The selected frames appear in the frame strip.
+
+### Important
+
+Selection order matters. The reconstruction follows the order you selected.
+
+---
+
+## 8. Adjust the joins
+
+Every adjacent frame pair has its own join.
+
+For example:
+
+~~~text
+Frame 12 → Frame 18   Join 1
+Frame 18 → Frame 25   Join 2
+Frame 25 → Frame 31   Join 3
+Frame 31 → Frame 39   Join 4
+~~~
+
+Each join has a separate overlap value.
 
 ~~~text
 Join 1 → 120 px
 Join 2 → 185 px
 Join 3 →  96 px
+Join 4 → 160 px
 ~~~
 
-This is intentional: the correct overlap can change from one frame pair to another.
+This is important because the correct overlap can change from one frame pair to another.
+
+### Automatic overlap
+
+ScoreCapture can estimate the overlap automatically.
+
+Treat that value as a suggestion. Repeated musical notation and similar visual patterns can make image matching ambiguous.
+
+### Manual overlap
+
+Use the slider belonging to the specific join that looks incorrect.
+
+Each join is independent, so correcting Join 3 does not alter Join 1, Join 2, or Join 4.
+
+The join list keeps its scroll position while you edit long sequences.
 
 ---
 
-## Manual page layout
+## 9. Verify the horizontal reconstruction
 
-The reconstruction is treated as a long horizontal source image. You decide where it should be divided.
+The reconstruction preview shows the selected frames as one continuous score.
 
-~~~text
-Horizontal reconstruction
-───────────────────────────────────────────────────────────────
-                 │                     │                 │
-                 │                     │                 │
-              Cut 1                 Cut 2             Cut 3
-                 │                     │                 │
-───────────────────────────────────────────────────────────────
-~~~
+Scroll horizontally and inspect the entire result.
 
-You can drag the visual cut markers or edit their positions numerically.
+Look for:
 
-Then ScoreCapture places the resulting systems onto fixed **A4 pages**:
+- duplicated notes,
+- doubled clefs,
+- visible seams,
+- incorrect overlaps,
+- missing portions,
+- frames that should be removed.
 
-~~~text
-┌──────────────────────────────┐
-│                              │
-│  System 1                    │
-│                              │
-│  System 2                    │
-│                              │
-│  System 3                    │
-│                              │
-└──────────────────────────────┘
-~~~
+Correct the individual joins until the continuous score looks right.
 
-The application does not attempt to interpret the music itself. You remain in control of where the score is divided.
+Do not move to page layout until the reconstruction itself is correct.
 
 ---
 
-## Architecture
+## 10. Add page cuts
 
-The codebase follows a separation-of-concerns approach:
+Once the reconstruction is correct, decide where the long score should be divided into printable systems.
+
+Click:
+
+**Add cut here**
+
+A cut marker is added to the reconstruction.
+
+You can drag the marker directly over the score.
+
+~~~text
+──────────────────────────────────────────────────────────────
+                     │                    │
+                   Cut 1                Cut 2
+                     │                    │
+──────────────────────────────────────────────────────────────
+~~~
+
+You can also edit cut positions numerically in the **Score layout** section.
+
+### Why are cuts manual?
+
+ScoreCapture does not try to guess the musical meaning of every system. You decide where each printable section should begin and end.
+
+This makes the final result predictable.
+
+---
+
+## 11. Choose how many systems go on each A4 page
+
+In **Score layout**, choose the number of reconstructed segments per page.
+
+For example:
+
+~~~text
+1 system / page
+2 systems / page
+3 systems / page
+4 systems / page
+~~~
+
+The final document uses a fixed **A4 canvas**.
+
+Score systems keep their proportions and are scaled together when necessary.
+
+---
+
+## 12. Preview the PDF
+
+Click:
+
+**Preview**
+
+Preview uses the current:
+
+- selected frames,
+- crop,
+- join overlaps,
+- page cuts,
+- page distribution,
+- A4 layout.
+
+A typical iteration is:
+
+~~~text
+Adjust
+  ↓
+Preview
+  ↓
+Inspect
+  ↓
+Adjust again
+  ↓
+Preview again
+~~~
+
+Repeat until the composition looks correct.
+
+---
+
+## 13. Generate the final PDF
+
+When the preview looks correct:
+
+1. Click **Generate PDF**.
+2. Select the destination.
+3. Save the document.
+
+The exported PDF uses the same reconstruction and layout settings that you reviewed in Preview.
+
+---
+
+# Recommended Workflow
+
+For the most reliable results:
+
+1. Analyze the video.
+2. Set the crop.
+3. Inspect the frame timeline.
+4. Switch to Horizontal join.
+5. Select only useful frames.
+6. Correct every join.
+7. Inspect the complete reconstruction.
+8. Add page cuts.
+9. Select systems per A4 page.
+10. Preview.
+11. Fine-tune.
+12. Generate the final PDF.
+
+---
+
+# Architecture
 
 ~~~text
 app/
@@ -175,120 +420,95 @@ app/
 └── main.py
 
 tests/
-└── test_core.py
+├── test_core.py
+└── test_stitcher.py
 ~~~
 
-### Core
-
-The core package contains video acquisition, frame extraction, cropping, duplicate detection, reconstruction, page layout, and PDF generation.
-
-### UI
-
-The interface is built with **Qt 6 + QML** using PySide6. Heavy processing is kept outside the UI layer.
+The processing core is independent from the QML presentation layer.
 
 ---
 
-## Installation
+# Development
 
-### Requirements
+## Requirements
 
-- Python **3.10 or newer**
-- Windows recommended for the packaged workflow
-- Internet access only when using a YouTube source
+- Python 3.10+
+- Windows is the primary packaged target
+- Internet access is required only for YouTube downloads
 
-### Run from source
+## Run
 
-~~~bat
+~~~text
 run.bat
 ~~~
 
-The launcher creates or reuses the virtual environment, installs the required dependencies, and starts ScoreCapture.
-
-### Manual setup
-
-~~~bash
-python -m venv venv
-~~~
-
-Windows:
-
-~~~bat
-venv\Scripts\activate
-python -m pip install -r requirements.txt
-python -m app.main
-~~~
-
----
-
 ## Build
 
-Create the Windows executable with:
-
-~~~bat
+~~~text
 build_extractor.bat
 ~~~
 
-Output:
+The generated executable is:
 
 ~~~text
 dist\ExtractorPartituras.exe
 ~~~
 
-The build process bundles the Qt/QML resources and the application dependencies.
+## Test
 
----
-
-## Testing
-
-Run the test suite locally:
-
-~~~bash
+~~~text
 python -m pytest -q
 ~~~
 
-GitHub Actions runs the test suite on Python 3.10 and 3.12.
+GitHub Actions runs the automated test suite on Python 3.10 and 3.12.
 
 ---
 
-## Design decisions
+# Design Principles
 
-### User-controlled reconstruction
+### User controlled
 
-Automatic overlap detection is deliberately assistive rather than authoritative. Dense notation, repeated symbols, and similar musical passages can make purely automatic alignment ambiguous.
+Automatic processing assists the workflow but does not make irreversible visual decisions for the user.
 
-### A4-first output
+### Explicit reconstruction
 
-The final document is composed on a fixed A4 canvas. Reconstructed score systems share a consistent width and are scaled together when needed.
+Every selected frame and every overlap remains visible and editable.
 
-### Explicit preview
+### Explicit page composition
 
-ScoreCapture does not silently rebuild the final document whenever a setting changes. The user adjusts the reconstruction and layout, presses **Preview**, checks the result, and then exports.
+The user decides where the score is divided into systems and how those systems are distributed across A4 pages.
+
+### Predictable export
+
+Preview and final PDF generation use the same current layout configuration.
 
 ---
 
-## Limitations
+# Limitations
 
-- ScoreCapture captures sheet music as raster images.
-- It does **not** recognize notes, chords, or musical symbols.
-- It does **not** generate MusicXML, MIDI, or other semantic music formats.
+- ScoreCapture extracts sheet music as raster images.
+- It does not recognize notes, chords, lyrics, or musical symbols.
+- It does not generate MusicXML or MIDI.
 - Automatic overlap detection is an assistive estimate and may require manual correction.
-- Final quality depends on the resolution, compression, and clarity of the source video.
+- Final quality depends on the source video's resolution, compression, and clarity.
 
 ---
 
-## Legal note
+# Legal
 
-Only download or process video content you are authorized to use. YouTube content remains subject to the rights of its owners and to YouTube's applicable terms.
+Only process and download video content you are authorized to use.
+
+YouTube content remains subject to the rights of its owners and to YouTube's applicable terms and policies.
 
 ---
 
-## Release
+# Release
 
-**Current version:** 3.0.0
+**Version 3.0.0**
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
-## License
+# License
 
 Released under the [MIT License](LICENSE).
 
@@ -296,6 +516,7 @@ Released under the [MIT License](LICENSE).
 
 <div align="center">
 
-**ScoreCapture** · Qt 6 · QML · Python · OpenCV
+**ScoreCapture**  
+Qt 6 · QML · Python · OpenCV
 
 </div>
