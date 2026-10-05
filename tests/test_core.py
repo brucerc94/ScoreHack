@@ -104,3 +104,24 @@ def test_split_panorama_uses_manual_cut_points() -> None:
         assert cv2.imread(str(segments[0]), cv2.IMREAD_COLOR).shape[1] == 40
         assert cv2.imread(str(segments[1]), cv2.IMREAD_COLOR).shape[1] == 35
         assert cv2.imread(str(segments[2]), cv2.IMREAD_COLOR).shape[1] == 25
+
+
+def test_horizontal_export_uses_a4_layout() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        first = root / "segment_1.jpg"
+        second = root / "segment_2.jpg"
+        _write(first, 80)
+        Image.new("RGB", (500, 80), 160).save(second)
+
+        output = root / "horizontal.pdf"
+        export_pdf(
+            [first, second],
+            output,
+            sheets_per_page=2,
+            page_size="A4",
+            layout_mode="horizontal",
+        )
+
+        assert output.exists()
+        assert output.stat().st_size > 0
