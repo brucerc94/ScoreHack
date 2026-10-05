@@ -257,9 +257,9 @@ Rectangle {
                     Item { Layout.fillWidth: true }
 
                     Label {
-                        text: backend.currentAutoOverlap > 0
-                              ? ("Auto " + backend.currentAutoOverlap + " px")
-                              : "Detectando…"
+                        text: backend.currentJoinConfidence > 0
+                              ? ("Detectado " + backend.currentAutoOverlap + " px")
+                              : "Ajuste manual"
                         color: "#77879f"
                         font.pixelSize: 10
                     }
