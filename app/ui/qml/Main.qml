@@ -7,9 +7,6 @@ ApplicationWindow {
     id: window
 
     visible: true
-
-    // Fixed window size calculated from the full content stack:
-    // header + source + main workspace + activity + spacing/margins.
     width: 1440
     height: 1000
     minimumWidth: 1440
@@ -24,14 +21,14 @@ ApplicationWindow {
            | Qt.WindowCloseButtonHint
 
     title: "ScoreCapture — Extractor de Partituras"
-    color: "#0b0f17"
+    color: "#0a0f18"
 
     RowLayout {
         anchors.fill: parent
         spacing: 0
 
         AppSidebar {
-            Layout.preferredWidth: 210
+            Layout.preferredWidth: 190
             Layout.fillHeight: true
         }
 
@@ -39,61 +36,68 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
             ColumnLayout {
-                width: Math.max(1000, parent.width - 48)
-                x: 24
-                spacing: 14
+                width: Math.max(1180, parent.width - 40)
+                x: 20
+                spacing: 12
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.topMargin: 18
+                    Layout.preferredHeight: 54
+                    Layout.topMargin: 10
 
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 3
+                        spacing: 2
 
                         Label {
                             text: "Extraer una partitura"
                             color: "#f4f7fb"
-                            font.pixelSize: 29
+                            font.pixelSize: 28
                             font.bold: true
                         }
 
                         Label {
                             text: backend.status
-                            color: "#8190a8"
+                            color: "#7f90aa"
                             font.pixelSize: 13
                         }
                     }
 
                     BusyIndicator {
                         running: backend.busy
-                        Layout.preferredWidth: 28
-                        Layout.preferredHeight: 28
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: 30
                     }
                 }
 
-                SourceCard {}
+                SourceCard {
+                    Layout.preferredHeight: 125
+                }
 
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 650
-                    spacing: 16
+                    spacing: 14
 
                     PreviewCard {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                     }
 
-                    SettingsCard {}
+                    SettingsCard {
+                        Layout.preferredWidth: 350
+                        Layout.fillHeight: true
+                    }
                 }
 
                 ActivityCard {
-                    Layout.preferredHeight: 145
+                    Layout.preferredHeight: 90
                 }
 
-                Item { Layout.preferredHeight: 10 }
+                Item { Layout.preferredHeight: 8 }
             }
         }
     }
