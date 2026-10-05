@@ -15,8 +15,9 @@ class Workspace:
         self.aligned = self.root / "aligned"
         self.sheets = self.root / "sheets"
         self.preview_pdf = self.root / "preview.pdf"
+        self.cleaned = self.root / "cleaned"
         self.video = self.root / "video.mp4"
-        for directory in (self.frames, self.aligned, self.crops, self.sheets):
+        for directory in (self.frames, self.aligned, self.crops, self.sheets, self.cleaned):
             directory.mkdir(parents=True, exist_ok=True)
 
     def cleanup(self) -> None:
