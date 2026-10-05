@@ -208,7 +208,7 @@ class ExtractionPipeline:
                 cancel_event=cancel_event,
                 overlap_overrides=settings.overlap_overrides,
             )
-            return (montage,)
+            return (montage.output_path,)
 
         cropped = self._prepare_cropped_frames(settings, cancel_event=cancel_event)
         self._emit("status", "Eliminando fotogramas repetidos…")
