@@ -20,13 +20,13 @@ ApplicationWindow {
            | Qt.WindowMinimizeButtonHint
            | Qt.WindowCloseButtonHint
 
-    title: "ScoreCapture — Extractor de Partituras"
+    title: "ScoreCapture — Sheet Music Extractor"
     color: "#0a0f18"
 
     Dialog {
         id: errorDialog
         modal: true
-        title: "No se pudo completar la operación"
+        title: "Operation could not be completed"
         standardButtons: Dialog.Ok
         width: 520
         property string message: ""
@@ -78,7 +78,7 @@ ApplicationWindow {
                         spacing: 2
 
                         Label {
-                            text: "Extraer una partitura"
+                            text: "Extract Sheet Music"
                             color: "#f4f7fb"
                             font.pixelSize: 28
                             font.bold: true
