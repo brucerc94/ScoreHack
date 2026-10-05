@@ -48,4 +48,36 @@ def test_horizontal_stitch_reconstructs_overlapping_frames() -> None:
         stitched = cv2.imread(str(result), cv2.IMREAD_COLOR)
         assert stitched is not None
         assert stitched.shape[0] == 220
-        assert stitched.shape[1] >= 850
+        assert 285 <= result.auto_overlaps[0] <= 315
+        assert result.effective_overlaps == result.auto_overlaps
+        assert 880 <= stitched.shape[1] <= 920
+
+
+def test_horizontal_stitch_accepts_manual_overlap() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        source = root / "frames"
+        output = root / "manual.jpg"
+        source.mkdir()
+
+        canvas = np.full((160, 800, 3), 255, dtype=np.uint8)
+        for x in range(20, 780, 25):
+            cv2.line(canvas, (x, 20), (x, 140), (0, 0, 0), 2)
+        cv2.putText(canvas, "PARTITURA", (260, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+
+        first = source / "frame_00000.jpg"
+        second = source / "frame_00001.jpg"
+        assert cv2.imwrite(str(first), canvas[:, 0:500])
+        assert cv2.imwrite(str(second), canvas[:, 250:750])
+
+        result = stitch_horizontal(
+            [first, second],
+            output,
+            overlap_overrides=(180,),
+        )
+
+        stitched = cv2.imread(str(result.output_path), cv2.IMREAD_COLOR)
+        assert stitched is not None
+        assert result.auto_overlaps[0] == result.auto_overlaps[0]
+        assert result.effective_overlaps == (180,)
+        assert stitched.shape[1] == 820
