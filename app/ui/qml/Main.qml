@@ -11,7 +11,7 @@ ApplicationWindow {
     // Fixed window size calculated from the full content stack:
     // header + source + main workspace + activity + spacing/margins.
     width: 1080
-    height: 950
+    height: 1080
     minimumWidth: 1080
     maximumWidth: 1080
     minimumHeight: 1080
