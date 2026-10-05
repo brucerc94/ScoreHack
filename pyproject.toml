@@ -1,3 +1,12 @@
-[build-system] 
-requires = ["setuptools", "wheel"] 
-build-backend = "setuptools.build_meta" 
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "extractor-partituras-youtube"
+version = "2.1.0"
+description = "Extractor modular de partituras desde YouTube y videos locales a PDF."
+requires-python = ">=3.10,<3.15"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
