@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "extractor-partituras-youtube"
-version = "2.9.1"
-description = "Extractor modular de partituras con seguimiento, selección manual y reconstrucción horizontal desde YouTube y videos locales."
+version = "3.0.0"
+description = "Desktop sheet-music extractor with manual frame selection, horizontal reconstruction, page cuts, and A4 PDF export."
 requires-python = ">=3.10,<3.15"
 
 [tool.pytest.ini_options]
