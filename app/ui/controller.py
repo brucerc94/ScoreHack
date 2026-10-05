@@ -17,7 +17,7 @@ from app.core.models import (
 from app.core.pipeline import ExtractionPipeline
 
 
-logger = logging.getLogger("scorecapture")
+logger = logging.getLogger("scorehack")
 
 
 class AppController(QObject):
