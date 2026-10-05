@@ -11,15 +11,13 @@ La aplicación usa **Qt 6 + QML** para una interfaz fluida y moderna. PySide6 es
 - Acepta enlaces de YouTube.
 - Permite seleccionar un video local.
 - Extrae fotogramas cada N segundos sin cargar todos los frames en memoria.
-- Corrige automáticamente pequeños desplazamientos de cámara o de la partitura usando como referencia únicamente la zona de recorte seleccionada.
-- Elimina opcionalmente resaltadores o cursores de reproducción coloreados que se mueven sobre la partitura.
 - Permite previsualizar un frame y ajustar recorte superior e inferior.
 - Permite definir el rango de frames a procesar.
 - Permite abrir una vista previa temporal del PDF antes de guardarlo.
 - Permite seleccionar manualmente frames concretos y ver en la UI la secuencia elegida.
 - Permite reconstruir partituras horizontalmente detectando zonas repetidas entre frames y permitiendo corregir cada unión manualmente desde la UI.
 - Permite definir manualmente los cortes de página sobre la reconstrucción y probar la distribución con **Vista previa** antes de generar el PDF.
-- Elimina frames consecutivos visualmente repetidos mediante SSIM después de estabilizarlos.
+- Elimina frames consecutivos visualmente repetidos mediante SSIM.
 - Genera páginas A4 con una cantidad configurable de partituras por página.
 - Guarda únicamente el PDF final en la ruta elegida.
 - No necesita privilegios de administrador.
@@ -33,7 +31,6 @@ app/
 │   ├── deduplicator.py
 │   ├── downloader.py
 │   ├── frame_extractor.py
-│   ├── motion_tracker.py
 │   ├── stitcher.py
 │   ├── layout.py
 │   ├── models.py
@@ -83,7 +80,7 @@ python -m pytest
 1. Selecciona **YouTube** o **Video local**.
 2. Pega la URL o pulsa **Subir video**.
 3. Pulsa **Analizar video** para extraer los frames sin fijar todavía la zona de seguimiento.
-4. Ajusta recorte, frame de vista previa y rango. La corrección de movimiento usa ese recorte como región de seguimiento cuando generas el PDF y puedes activar **Quitar resaltado móvil**.
+4. Ajusta el recorte, el frame de vista previa y el rango.
 5. Selecciona manualmente los frames que quieras conservar. La aplicación intenta detectar automáticamente la zona repetida entre cada par.
 6. En cada unión puedes revisar el solape detectado y cambiarlo manualmente cuando sea necesario.
 7. En **Cortes de página**, agrega cortes desde la posición visible o arrastra las líneas sobre la reconstrucción.
