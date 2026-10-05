@@ -24,6 +24,15 @@ def _resize_for_motion(image: np.ndarray, max_width: int = 640) -> tuple[np.ndar
     return resized, scale
 
 
+def _motion_region(image: np.ndarray, crop_top: int, crop_bottom: int) -> np.ndarray:
+    height = image.shape[0]
+    if crop_top < 0 or crop_bottom < 0:
+        raise ValueError("Los recortes no pueden ser negativos.")
+    if crop_top + crop_bottom >= height:
+        raise ValueError("El recorte superior + inferior debe dejar una imagen visible.")
+    return image[crop_top : height - crop_bottom, :]
+
+
 def _estimate_translation(
     reference: np.ndarray,
     current: np.ndarray,
@@ -125,18 +134,24 @@ def _write_image(target: Path, image: np.ndarray) -> None:
 def stabilize_frames(
     frame_paths: Iterable[Path],
     output_dir: Path,
+    crop_top: int = 0,
+    crop_bottom: int = 0,
     max_shift_px: int = 240,
     min_phase_response: float = 0.05,
     on_progress: ProgressCallback | None = None,
     cancel_event: Event | None = None,
 ) -> tuple[Path, ...]:
     """
-    Corrige desplazamientos de cámara/partitura manteniendo el mismo tamaño de frame.
+    Corrige desplazamientos usando SOLO la zona útil de la partitura.
 
-    Se intenta primero una correlación de fase para movimientos de traslación.
-    Si la señal es débil, se usa ORB + transformación afín como respaldo.
-    Cuando no hay una correspondencia confiable, se conserva el frame original
-    y se toma como nueva referencia para recuperarse después de un cambio de página.
+    El recorte se utiliza como región de interés para detectar movimiento, pero la
+    transformación resultante se aplica al frame completo. Así, el usuario puede
+    analizar primero el video, ajustar el recorte y recién después ejecutar el
+    seguimiento sobre la zona correcta.
+
+    Se intenta primero correlación de fase para traslaciones. Si la señal es
+    débil, se usa ORB + transformación afín como respaldo. Cuando no hay una
+    correspondencia confiable, se conserva el frame y se inicia un nuevo segmento.
     """
     paths = list(frame_paths)
     if not paths:
@@ -148,7 +163,6 @@ def stabilize_frames(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     output: list[Path] = []
-
     reference: np.ndarray | None = None
 
     for index, source in enumerate(paths):
@@ -159,13 +173,14 @@ def stabilize_frames(
         if current is None:
             raise RuntimeError(f"No se pudo leer {source.name}.")
 
+        current_roi = _motion_region(current, crop_top, crop_bottom)
         aligned = current
-        message = "Corrigiendo movimiento…"
+        message = "Siguiendo movimiento en el recorte…"
 
         if reference is None:
-            reference = current.copy()
+            reference = current_roi.copy()
         else:
-            dx, dy, response = _estimate_translation(reference, current)
+            dx, dy, response = _estimate_translation(reference, current_roi)
             shift_ok = (
                 math.isfinite(dx)
                 and math.isfinite(dy)
@@ -183,7 +198,7 @@ def stabilize_frames(
                     borderMode=cv2.BORDER_REFLECT101,
                 )
             else:
-                affine = _estimate_affine(reference, current, max_shift_px)
+                affine = _estimate_affine(reference, current_roi, max_shift_px)
                 if affine is not None:
                     aligned = cv2.warpAffine(
                         current,
@@ -193,9 +208,7 @@ def stabilize_frames(
                         borderMode=cv2.BORDER_REFLECT101,
                     )
                 else:
-                    # Likely page change, cut, or an abrupt camera move.
-                    # Start a new tracking segment instead of applying a bad transform.
-                    reference = current.copy()
+                    reference = current_roi.copy()
                     message = "Nuevo segmento detectado…"
 
         target = output_dir / source.name
@@ -203,9 +216,6 @@ def stabilize_frames(
         output.append(target)
 
         if on_progress:
-            on_progress(
-                (index + 1) / len(paths),
-                message,
-            )
+            on_progress((index + 1) / len(paths), message)
 
     return tuple(output)
