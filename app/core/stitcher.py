@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from threading import Event
 from typing import Callable, Iterable
 
 import cv2
@@ -152,6 +153,7 @@ def stitch_horizontal(
     output_path: Path,
     overlap_overrides: tuple[int, ...] = (),
     on_progress: ProgressCallback | None = None,
+    cancel_event: Event | None = None,
 ) -> MontageResult:
     """
     Reconstruye una partitura horizontalmente.
@@ -172,6 +174,9 @@ def stitch_horizontal(
     confidences: list[float] = []
 
     for index in range(len(images) - 1):
+        if cancel_event and cancel_event.is_set():
+            raise InterruptedError("Proceso cancelado por el usuario.")
+
         overlap, confidence = _match_overlap(images[index], images[index + 1])
         auto_overlaps.append(overlap)
         confidences.append(confidence)
@@ -191,6 +196,8 @@ def stitch_horizontal(
 
     panorama = images[0]
     for index, image in enumerate(images[1:]):
+        if cancel_event and cancel_event.is_set():
+            raise InterruptedError("Proceso cancelado por el usuario.")
         panorama = _blend_pair(
             panorama,
             image,
