@@ -12,9 +12,10 @@ class Workspace:
         self.root = Path(tempfile.mkdtemp(prefix="extractor_partituras_"))
         self.frames = self.root / "frames"
         self.crops = self.root / "crops"
+        self.aligned = self.root / "aligned"
         self.sheets = self.root / "sheets"
         self.video = self.root / "video.mp4"
-        for directory in (self.frames, self.crops, self.sheets):
+        for directory in (self.frames, self.aligned, self.crops, self.sheets):
             directory.mkdir(parents=True, exist_ok=True)
 
     def cleanup(self) -> None:
