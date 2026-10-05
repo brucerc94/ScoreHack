@@ -57,6 +57,8 @@ python -m pip install -r requirements.txt
 python -m app.main
 ```
 
+Con `run.bat`, la consola muestra el avance por etapas y porcentajes sin bloquear la interfaz.
+
 ## Build de Windows
 
 ```bat
