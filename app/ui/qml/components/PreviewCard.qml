@@ -21,7 +21,7 @@ Rectangle {
 
             Label {
                 text: backend.layoutMode === "horizontal"
-                      ? "Selector de frames"
+                      ? "Reconstrucción de partitura"
                       : "Vista previa"
                 color: "#f4f7fb"
                 font.pixelSize: 16
@@ -32,14 +32,14 @@ Rectangle {
 
             Rectangle {
                 visible: backend.layoutMode === "horizontal"
-                Layout.preferredWidth: 86
+                Layout.preferredWidth: 94
                 Layout.preferredHeight: 24
                 radius: 8
                 color: "#182233"
 
                 Label {
                     anchors.centerIn: parent
-                    text: backend.selectedFrameCount + " seleccionados"
+                    text: backend.selectedFrameCount + " frames"
                     color: "#8ea0bb"
                     font.pixelSize: 10
                 }
@@ -126,7 +126,7 @@ Rectangle {
             }
 
             Button {
-                Layout.preferredWidth: 100
+                Layout.preferredWidth: 92
                 text: "Vaciar"
                 enabled: backend.selectedFrameCount > 0 && !backend.busy
                 onClicked: backend.clearFrameSelection()
@@ -135,8 +135,8 @@ Rectangle {
             Label {
                 Layout.fillWidth: true
                 text: backend.selectedFrameCount === 0
-                      ? "Elige un frame y agrégalo al conjunto."
-                      : "Orden: los frames se unirán de izquierda a derecha."
+                      ? "Elige un frame y agrégalo."
+                      : "Los frames se colocan en el orden seleccionado."
                 color: "#77879f"
                 elide: Text.ElideRight
             }
@@ -149,7 +149,7 @@ Rectangle {
             spacing: 8
 
             Label {
-                Layout.preferredWidth: 55
+                Layout.preferredWidth: 48
                 text: "Frames"
                 color: "#8290a6"
                 font.pixelSize: 11
@@ -211,82 +211,164 @@ Rectangle {
                 Layout.fillWidth: true
                 text: "Aquí aparecerán los frames seleccionados."
                 color: "#59677c"
-                elide: Text.ElideRight
             }
         }
 
         Rectangle {
-            visible: backend.layoutMode === "individual"
-            Layout.fillWidth: false
-            Layout.fillHeight: true
-            Layout.preferredWidth: 1
-            color: "transparent"
+            visible: backend.layoutMode === "horizontal" && backend.joinCount > 0
+            Layout.fillWidth: true
+            Layout.preferredHeight: 78
+            radius: 10
+            color: "#0d1522"
+            border.color: "#1b2a3f"
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 5
+
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Button {
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: 24
+                        text: "‹"
+                        enabled: backend.currentJoin > 0
+                        onClicked: backend.previousJoin()
+                    }
+
+                    Label {
+                        Layout.preferredWidth: 116
+                        text: backend.currentJoinLabel
+                        color: "#dbe5f2"
+                        font.pixelSize: 11
+                        font.bold: true
+                    }
+
+                    Button {
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: 24
+                        text: "›"
+                        enabled: backend.currentJoin < backend.joinCount - 1
+                        onClicked: backend.nextJoin()
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Label {
+                        text: backend.currentAutoOverlap > 0
+                              ? ("Auto " + backend.currentAutoOverlap + " px")
+                              : "Detectando…"
+                        color: "#77879f"
+                        font.pixelSize: 10
+                    }
+
+                    Button {
+                        Layout.preferredWidth: 46
+                        Layout.preferredHeight: 24
+                        text: "Auto"
+                        onClicked: backend.resetCurrentOverlap()
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Label {
+                        text: "Solape"
+                        color: "#8290a6"
+                        font.pixelSize: 10
+                    }
+
+                    Slider {
+                        Layout.fillWidth: true
+                        from: Math.max(8, Math.round(backend.montageFrameWidth * 0.05))
+                        to: Math.max(16, Math.round(backend.montageFrameWidth * 0.90))
+                        value: backend.currentOverlap
+                        enabled: backend.montageFrameWidth > 0 && !backend.montageBusy
+                        onMoved: backend.setCurrentOverlap(value)
+                    }
+
+                    Label {
+                        Layout.preferredWidth: 72
+                        text: backend.currentOverlap > 0
+                              ? backend.currentOverlap + " px"
+                              : "—"
+                        color: "#cbd5e3"
+                        font.pixelSize: 10
+                        horizontalAlignment: Text.AlignRight
+                    }
+
+                    Label {
+                        Layout.preferredWidth: 54
+                        text: backend.currentJoinConfidence > 0
+                              ? Math.round(backend.currentJoinConfidence * 100) + "%"
+                              : "—"
+                        color: "#6f8199"
+                        font.pixelSize: 10
+                    }
+                }
+            }
         }
 
         Rectangle {
             visible: backend.layoutMode === "horizontal"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 190
+            Layout.minimumHeight: 150
             radius: 12
             color: "#080c13"
             border.color: "#1c293b"
             clip: true
 
-            RowLayout {
+            Flickable {
+                id: montageView
                 anchors.fill: parent
                 anchors.margins: 8
-                spacing: 0
+                visible: backend.montagePreviewSource !== ""
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.HorizontalFlick
+                contentWidth: montageImage.width + 16
+                contentHeight: height
 
-                Label {
-                    visible: backend.montagePreviewSource === "" && !backend.montageBusy
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    text: backend.selectedFrameCount < 2
-                          ? "Selecciona al menos 2 frames para construir la partitura."
-                          : "Preparando la previsualización…"
-                    color: "#59677c"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                Image {
+                    id: montageImage
+                    x: 8
+                    y: 8
+                    height: Math.max(1, montageView.height - 16)
+                    width: sourceSize.width > 0
+                           ? Math.max(1, sourceSize.width * height / sourceSize.height)
+                           : 1
+                    source: backend.montagePreviewSource
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    cache: false
                 }
 
-                Flickable {
-                    id: montageView
-                    visible: backend.montagePreviewSource !== ""
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-                    flickableDirection: Flickable.HorizontalFlick
-                    contentWidth: montageImage.width + 16
-                    contentHeight: height
-
-                    Image {
-                        id: montageImage
-                        x: 8
-                        y: 8
-                        height: Math.max(1, montageView.height - 16)
-                        width: sourceSize.width > 0
-                               ? Math.max(1, sourceSize.width * height / sourceSize.height)
-                               : 1
-                        source: backend.montagePreviewSource
-                        fillMode: Image.Stretch
-                        asynchronous: true
-                        cache: false
-                    }
-
-                    ScrollBar.horizontal: ScrollBar {
-                        policy: ScrollBar.AsNeeded
-                    }
+                ScrollBar.horizontal: ScrollBar {
+                    policy: ScrollBar.AsNeeded
                 }
+            }
 
-                BusyIndicator {
-                    visible: backend.montageBusy
-                    running: backend.montageBusy
-                    Layout.alignment: Qt.AlignCenter
-                    Layout.preferredWidth: 30
-                    Layout.preferredHeight: 30
-                }
+            BusyIndicator {
+                anchors.centerIn: parent
+                running: backend.montageBusy
+                visible: running
+                width: 30
+                height: 30
+            }
+
+            Label {
+                anchors.centerIn: parent
+                visible: !backend.montageBusy && backend.montagePreviewSource === ""
+                text: backend.selectedFrameCount < 2
+                      ? "Selecciona al menos 2 frames para comenzar."
+                      : "Buscando la zona repetida…"
+                color: "#59677c"
+                horizontalAlignment: Text.AlignHCenter
             }
 
             Rectangle {
@@ -294,14 +376,14 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.top: parent.top
                 anchors.margins: 12
-                width: 118
+                width: 120
                 height: 22
                 radius: 7
                 color: "#111827"
 
                 Label {
                     anchors.centerIn: parent
-                    text: "Resultado horizontal"
+                    text: "Reconstrucción"
                     color: "#8ea0bb"
                     font.pixelSize: 9
                 }
