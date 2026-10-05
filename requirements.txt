@@ -1,7 +1,8 @@
+customtkinter==6.0.0
 opencv-python
 numpy
 pillow
 scikit-image
 fpdf2
-matplotlib
-yt-dlp 
+yt-dlp
+pytest

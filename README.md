@@ -1,41 +1,73 @@
-# Extractor de Partituras de YouTube a PDF
+# Extractor de Partituras
 
-Este proyecto permite descargar videos de YouTube, extraer partituras desde los fotogramas y generar un PDF listo para imprimir.
+Aplicación modular para capturar partituras mostradas en videos de YouTube o videos locales y exportarlas a PDF.
 
-## Requisitos
-- Python 3.8+
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (se instala automáticamente)
+## Qué hace
+
+- Acepta enlaces de YouTube.
+- Permite seleccionar un video local.
+- Extrae fotogramas cada N segundos sin cargar todos los frames en memoria.
+- Permite previsualizar un frame y ajustar recorte superior e inferior.
+- Permite definir el rango de frames a procesar.
+- Elimina frames consecutivos visualmente repetidos mediante SSIM.
+- Genera páginas A4 con una cantidad configurable de partituras por página.
+- Guarda únicamente el PDF final en la ruta elegida.
+- No necesita privilegios de administrador.
+
+## Arquitectura
+
+```text
+app/
+├── core/
+│   ├── crop.py
+│   ├── deduplicator.py
+│   ├── downloader.py
+│   ├── frame_extractor.py
+│   ├── models.py
+│   ├── pdf_exporter.py
+│   ├── pipeline.py
+│   └── workspace.py
+├── ui/
+│   └── main_window.py
+└── main.py
+```
+
+La interfaz no contiene la lógica de procesamiento. El núcleo no conoce Tkinter y puede probarse de forma independiente.
 
 ## Instalación
 
-1. Clona el repositorio o descarga los archivos.
-2. Crea un entorno virtual e instala las dependencias:
+Se recomienda Python 3.10+.
 
 ```bash
 python -m venv venv
-venv\Scripts\activate  # En Windows
-# o
-source venv/bin/activate  # En Linux/Mac
-pip install --upgrade pip
-pip install -r requirements.txt
+venv\\Scripts\\activate
+python -m pip install -r requirements.txt
+python -m app.main
 ```
 
-## Uso
+## Build de Windows
 
-1. Ejecuta el script principal:
+```bat
+build_extractor.bat
+```
+
+Genera `dist\\ExtractorPartituras.exe`. `yt-dlp` y CustomTkinter se incluyen en el empaquetado.
+
+## Pruebas
 
 ```bash
-python ExtracorPartituras.py
+python -m pytest
 ```
 
-2. Ingresa la URL del video de YouTube, el nombre del PDF y los parámetros solicitados en la interfaz gráfica.
+## Flujo de uso
 
-3. El PDF generado estará en la misma carpeta.
+1. Selecciona **YouTube** o **Video local**.
+2. Pega la URL o pulsa **Subir video**.
+3. Pulsa **Analizar video**.
+4. Ajusta recorte, frame de vista previa y rango.
+5. Define cuántas partituras deben caber por página.
+6. Pulsa **Generar PDF** y elige dónde guardarlo.
 
-## Notas
-- El script limpia automáticamente los archivos temporales tras la generación del PDF.
-- Puedes ajustar el umbral de similitud en la función `eliminar_duplicados` si necesitas mayor o menor sensibilidad.
+## Nota técnica
 
----
-
-¡Disfruta digitalizando tus partituras! 
+El programa captura la partitura como imagen. No reconoce notas musicales ni convierte la partitura a MusicXML u otro formato vectorial.
