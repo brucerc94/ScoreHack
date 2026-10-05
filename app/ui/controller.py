@@ -42,6 +42,7 @@ class AppController(QObject):
     montagePreviewChanged = Signal()
     montageBusyChanged = Signal()
     joinChanged = Signal()
+    layoutCutsChanged = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -76,6 +77,7 @@ class AppController(QObject):
         self._montage_busy = False
         self._montage_generation = 0
         self._montage_pending = False
+        self._layout_cuts: list[float] = []
 
         self._events: Queue[tuple[str, object]] = Queue()
 
@@ -266,6 +268,23 @@ class AppController(QObject):
     def montageFrameWidth(self) -> int:
         return self._montage_frame_width
 
+    @Property(int, notify=layoutCutsChanged)
+    def layoutCutCount(self) -> int:
+        return len(self._layout_cuts)
+
+    @Slot(int, result=float)
+    def layoutCutPercent(self, index: int) -> float:
+        if not 0 <= index < len(self._layout_cuts):
+            return 0.0
+        return self._layout_cuts[index] * 100.0
+
+    @Slot(int, result=float)
+    def layoutCutPosition(self, index: int) -> float:
+        if not 0 <= index < len(self._layout_cuts):
+            return 0.0
+        return self._layout_cuts[index]
+
+
     @Slot(str)
     def setSourceText(self, value: str) -> None:
         self._source = value.strip()
@@ -296,6 +315,7 @@ class AppController(QObject):
         if value == "horizontal":
             self._schedule_montage_refresh()
         else:
+            self.clearLayoutCuts()
             self._reset_montage_state()
 
     @Slot()
@@ -309,6 +329,7 @@ class AppController(QObject):
             self._selected_frames.append(self._current_frame)
 
         self._normalize_join_state()
+        self.clearLayoutCuts()
         self._emit_selection_state()
 
     @Slot(int)
@@ -323,6 +344,7 @@ class AppController(QObject):
             if removed not in pair
         }
         self._normalize_join_state()
+        self.clearLayoutCuts()
         self._emit_selection_state()
 
     @Slot()
@@ -356,6 +378,46 @@ class AppController(QObject):
             self.joinChanged.emit()
             self._schedule_montage_refresh()
 
+    @Slot(float)
+    def addLayoutCut(self, position: float) -> None:
+        if self._layout_mode != "horizontal":
+            return
+
+        position = max(0.02, min(float(position), 0.98))
+        minimum_gap = 0.01
+
+        if any(abs(position - cut) < minimum_gap for cut in self._layout_cuts):
+            self.error.emit("Ya existe un corte muy cerca de esa posición.")
+            return
+
+        self._layout_cuts.append(position)
+        self._layout_cuts.sort()
+        self.layoutCutsChanged.emit()
+
+    @Slot(int, float)
+    def setLayoutCut(self, index: int, position: float) -> None:
+        if not 0 <= index < len(self._layout_cuts):
+            return
+
+        lower = self._layout_cuts[index - 1] + 0.01 if index > 0 else 0.02
+        upper = self._layout_cuts[index + 1] - 0.01 if index + 1 < len(self._layout_cuts) else 0.98
+        self._layout_cuts[index] = max(lower, min(float(position), upper))
+        self.layoutCutsChanged.emit()
+
+    @Slot(int)
+    def removeLayoutCut(self, index: int) -> None:
+        if not 0 <= index < len(self._layout_cuts):
+            return
+        self._layout_cuts.pop(index)
+        self.layoutCutsChanged.emit()
+
+    @Slot()
+    def clearLayoutCuts(self) -> None:
+        if not self._layout_cuts:
+            return
+        self._layout_cuts.clear()
+        self.layoutCutsChanged.emit()
+
     @Slot(bool)
     def setRemoveOverlays(self, value: bool) -> None:
         if self._remove_overlays != bool(value):
@@ -384,6 +446,7 @@ class AppController(QObject):
         self._close_pipeline()
         self._cancel_event.clear()
         self._reset_montage_state()
+        self.clearLayoutCuts()
         self._selected_frames.clear()
         self._emit_selection_state()
 
@@ -402,6 +465,7 @@ class AppController(QObject):
 
         self._close_pipeline()
         self._reset_montage_state()
+        self.clearLayoutCuts()
         self._preparation = None
         self._frame_paths = ()
         self._current_frame = 0
@@ -466,9 +530,7 @@ class AppController(QObject):
             crop_bottom=self._crop_bottom,
             start_frame=self._range_start,
             end_frame=self._range_end,
-            sheets_per_page=(
-                1 if self._layout_mode == "horizontal" else sheets_per_page
-            ),
+            sheets_per_page=sheets_per_page,
             page_size=(
                 "A4_LANDSCAPE" if self._layout_mode == "horizontal" else "A4"
             ),
@@ -477,6 +539,7 @@ class AppController(QObject):
             layout_mode=self._layout_mode,
             selected_frames=tuple(self._selected_frames),
             overlap_overrides=self._effective_overlaps(),
+            layout_cuts=tuple(self._layout_cuts),
         )
 
     def _effective_overlaps(self) -> tuple[int | None, ...]:
