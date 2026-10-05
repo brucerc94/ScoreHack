@@ -1,6 +1,7 @@
 from pathlib import Path
 import tempfile
 
+import cv2
 import numpy as np
 from PIL import Image
 
@@ -62,7 +63,6 @@ def test_moving_highlight_is_removed_from_score() -> None:
         source.mkdir()
 
         base = np.full((220, 300, 3), 255, dtype=np.uint8)
-        cv2 = __import__("cv2")
         cv2.line(base, (20, 70), (280, 70), (0, 0, 0), 2)
         cv2.line(base, (20, 120), (280, 120), (0, 0, 0), 2)
 
