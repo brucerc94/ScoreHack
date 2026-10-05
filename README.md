@@ -1,28 +1,59 @@
-# Extractor de Partituras
+# ScoreCapture — Sheet Music Extractor
 
-Aplicación modular para capturar partituras mostradas en videos de YouTube o videos locales y exportarlas a PDF.
+ScoreCapture extracts sheet music shown in YouTube videos or local video files and turns the captured frames into clean, printable PDF pages.
 
-## Interfaz
+The project is designed for videos where a score is displayed on screen and the page or viewport moves as the music progresses. The workflow keeps the important decisions in the user's hands: select the frames, control each overlap, define page cuts, preview the result, then export.
 
-La aplicación usa **Qt 6 + QML** para una interfaz fluida y moderna. PySide6 es el binding oficial de Qt para Python; la versión fijada es 6.11.2. La interfaz incluye selección de fuente, arrastrar y soltar video local, vista previa, sliders de recorte/rango y exportación.
+## Features
 
-## Qué hace
+- YouTube and local video input.
+- Local video drag-and-drop.
+- Frame extraction at a configurable interval.
+- Manual frame selection in the order you want them reconstructed.
+- Horizontal score reconstruction with per-join overlap control.
+- Automatic overlap estimation as a suggestion, with manual correction available for every join.
+- Manual page cuts directly on the reconstruction.
+- A4-first PDF layout with consistent system sizing.
+- Configurable number of reconstructed segments per page.
+- SSIM-based consecutive duplicate removal in the individual-frame workflow.
+- Background processing with progress and runtime logging.
+- No administrator privileges required.
 
-- Acepta enlaces de YouTube.
-- Permite seleccionar un video local.
-- Extrae fotogramas cada N segundos sin cargar todos los frames en memoria.
-- Permite previsualizar un frame y ajustar recorte superior e inferior.
-- Permite definir el rango de frames a procesar.
-- Permite abrir una vista previa temporal del PDF antes de guardarlo.
-- Permite seleccionar manualmente frames concretos y ver en la UI la secuencia elegida.
-- Permite reconstruir partituras horizontalmente detectando zonas repetidas entre frames y permitiendo corregir cada unión manualmente desde la UI.
-- Permite definir manualmente los cortes de página sobre la reconstrucción y probar la distribución con **Vista previa** antes de generar el PDF.
-- Elimina frames consecutivos visualmente repetidos mediante SSIM.
-- Genera páginas A4 con una cantidad configurable de partituras por página.
-- Guarda únicamente el PDF final en la ruta elegida.
-- No necesita privilegios de administrador.
+## Workflow
 
-## Arquitectura
+### 1. Select the source
+
+Choose **YouTube** or **Local video**, provide the source, and click **Analyze video**.
+
+### 2. Prepare the frames
+
+Use the frame slider to inspect the extracted images. Adjust **Top crop** and **Bottom crop** so that the useful score area is visible.
+
+### 3. Reconstruct a moving score
+
+Switch to **Horizontal join**.
+
+Select a frame and click **Add frame**. Continue selecting frames in the order in which they should appear.
+
+For every consecutive pair, ScoreCapture estimates the overlap. The estimate is only a starting point: each join has its own slider so you can correct it independently.
+
+### 4. Define page cuts
+
+Once the horizontal reconstruction looks correct, add page cuts directly on the reconstruction or edit their positions numerically.
+
+The application does not try to guess where a musical system should end. You decide where the reconstructed score is divided.
+
+### 5. Preview and export
+
+Choose how many reconstructed segments should appear on each A4 page and click **Preview**.
+
+Review the generated PDF. Adjust the frame selection, joins, or page cuts and preview again until the layout is correct.
+
+When satisfied, click **Generate PDF** and save the final document.
+
+## Architecture
+
+The project follows a modular, separation-of-concerns architecture:
 
 ```text
 app/
@@ -31,62 +62,97 @@ app/
 │   ├── deduplicator.py
 │   ├── downloader.py
 │   ├── frame_extractor.py
-│   ├── stitcher.py
 │   ├── layout.py
 │   ├── models.py
 │   ├── pdf_exporter.py
 │   ├── pipeline.py
+│   ├── stitcher.py
 │   └── workspace.py
 ├── ui/
-│   ├── launcher.py
 │   ├── controller.py
+│   ├── launcher.py
 │   └── qml/
 │       ├── Main.qml
 │       └── components/
 └── main.py
 ```
 
-La interfaz está hecha con Qt 6 + QML mediante PySide6. El núcleo no conoce Qt/QML y puede probarse de forma independiente.
+The core package contains video processing and document-generation logic and has no dependency on Qt/QML UI widgets.
 
-## Instalación
+The UI uses **Qt 6 + QML** through PySide6.
 
-Se recomienda Python 3.10+.
+## Requirements
+
+- Python 3.10–3.14
+- Windows is the primary packaged target.
+- Internet access is required only when downloading a YouTube source.
+
+## Run from source
+
+### Windows
+
+```bat
+run.bat
+```
+
+The launcher creates or reuses the local virtual environment, installs missing dependencies, and starts the application.
+
+### Manual setup
 
 ```bash
 python -m venv venv
-venv\\Scripts\\activate
+# Windows
+venv\Scripts\activate
+
 python -m pip install -r requirements.txt
 python -m app.main
 ```
 
-Con `run.bat`, la consola muestra el avance por etapas y porcentajes sin bloquear la interfaz.
-
-## Build de Windows
+## Build a Windows executable
 
 ```bat
 build_extractor.bat
 ```
 
-Genera `dist\\ExtractorPartituras.exe`. PySide6/Qt 6, la interfaz QML y `yt-dlp` se incluyen en el empaquetado.
+The build script creates:
 
-## Pruebas
-
-```bash
-python -m pytest
+```text
+dist\ExtractorPartituras.exe
 ```
 
-## Flujo de uso
+The Qt/QML resources and yt-dlp package are collected into the executable.
 
-1. Selecciona **YouTube** o **Video local**.
-2. Pega la URL o pulsa **Subir video**.
-3. Pulsa **Analizar video** para extraer los frames sin fijar todavía la zona de seguimiento.
-4. Ajusta el recorte, el frame de vista previa y el rango.
-5. Selecciona manualmente los frames que quieras conservar. La aplicación intenta detectar automáticamente la zona repetida entre cada par.
-6. En cada unión puedes revisar el solape detectado y cambiarlo manualmente cuando sea necesario.
-7. En **Cortes de página**, agrega cortes desde la posición visible o arrastra las líneas sobre la reconstrucción.
-8. Elige cuántos segmentos van por página y pulsa **Vista previa**. La vista previa genera el PDF con exactamente esos cortes; corrige y vuelve a previsualizar hasta quedar conforme.
-9. Pulsa **Generar PDF** para guardar el resultado definitivo.
+## Tests
 
-## Nota técnica
+Run the test suite with:
 
-El programa captura la partitura como imagen. No reconoce notas musicales ni convierte la partitura a MusicXML u otro formato vectorial.
+```bash
+python -m pytest -q
+```
+
+GitHub Actions also runs the test suite on Python 3.10 and 3.12 for pushes and pull requests.
+
+## Design principles
+
+ScoreCapture intentionally favors deterministic, user-controlled reconstruction over opaque automatic editing.
+
+Automatic overlap detection is useful when it works, but it can be ambiguous on dense musical notation. For that reason, the user can override every join.
+
+Page composition is also explicit. A4 is treated as the final document canvas, while the reconstructed score is divided into user-defined systems before export.
+
+## Limitations
+
+- The application captures sheet music as raster images; it does not recognize notes.
+- It does not generate MusicXML, MIDI, or other semantic music formats.
+- Automatic overlap detection is an assistive estimate, not a guarantee.
+- PDF quality depends on the resolution and clarity of the source video.
+
+## Project status
+
+ScoreCapture is a focused desktop utility for reconstructing on-screen sheet music into printable PDFs.
+
+Version: **3.0.0**
+
+## License
+
+This project is released under the MIT License. See [LICENSE](LICENSE).
