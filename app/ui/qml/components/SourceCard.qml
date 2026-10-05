@@ -14,14 +14,26 @@ Rectangle {
     property string sourceMode: "YouTube"
     property string localName: ""
 
+    function localPath(urlValue) {
+        var value = String(urlValue)
+        if (value.indexOf("file:///") === 0)
+            value = value.substring(8)
+        return decodeURIComponent(value)
+    }
+
+    function localFileName(urlValue) {
+        return localPath(urlValue).replace(/\\/g, "/").split("/").pop()
+    }
+
     FileDialog {
         id: videoDialog
         title: "Seleccionar video"
         nameFilters: ["Videos (*.mp4 *.mkv *.avi *.mov *.webm *.m4v)", "Todos los archivos (*)"]
         fileMode: FileDialog.OpenFile
         onAccepted: {
-            backend.setLocalVideoUrl(selectedFile)
-            root.localName = selectedFile.toLocalFile().split("/").pop()
+            var path = root.localPath(selectedFile)
+            backend.setLocalVideo(path)
+            root.localName = root.localFileName(selectedFile)
         }
     }
 
@@ -132,8 +144,9 @@ Rectangle {
 
             onDropped: {
                 if (drop.hasUrls) {
-                    backend.setLocalVideoUrl(drop.urls[0])
-                    root.localName = drop.urls[0].toLocalFile().split("/").pop()
+                    var path = root.localPath(drop.urls[0])
+                    backend.setLocalVideo(path)
+                    root.localName = root.localFileName(drop.urls[0])
                 }
             }
         }
