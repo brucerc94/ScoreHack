@@ -9,6 +9,7 @@ from .deduplicator import remove_consecutive_duplicates
 from .downloader import download_youtube, is_youtube_url
 from .frame_extractor import extract_frames, inspect_video
 from .models import ExtractionSettings, PreparationResult
+from .motion_tracker import stabilize_frames
 from .pdf_exporter import export_pdf
 from .workspace import Workspace
 
@@ -28,7 +29,13 @@ class ExtractionPipeline:
         if self.on_event:
             self.on_event(name, payload)
 
-    def prepare(self, source: str, interval_seconds: float, cancel_event: Event | None = None) -> PreparationResult:
+    def prepare(
+        self,
+        source: str,
+        interval_seconds: float,
+        stabilize_motion: bool = True,
+        cancel_event: Event | None = None,
+    ) -> PreparationResult:
         source = source.strip()
         if not source:
             raise ValueError("Selecciona un video o pega una URL de YouTube.")
@@ -55,6 +62,16 @@ class ExtractionPipeline:
             lambda p, m: self._emit("progress", (p, m)),
         )
         self._check_cancel(cancel_event)
+
+        if stabilize_motion:
+            self._emit("status", "Siguiendo movimiento de la partitura…")
+            frames = stabilize_frames(
+                frames,
+                self.workspace.aligned,
+                on_progress=lambda p, m: self._emit("progress", (p, m)),
+                cancel_event=cancel_event,
+            )
+            self._check_cancel(cancel_event)
 
         self.video_path = video_path
         self.frame_paths = frames
