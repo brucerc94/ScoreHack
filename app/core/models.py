@@ -17,6 +17,8 @@ class ExtractionSettings:
     margin_pt: float = 28.0
     stabilize_motion: bool = True
     remove_overlays: bool = True
+    layout_mode: str = "individual"
+    selected_frames: tuple[int, ...] = ()
 
     def validate(self) -> None:
         if self.interval_seconds <= 0:
@@ -31,6 +33,12 @@ class ExtractionSettings:
             raise ValueError("El frame inicial no puede ser negativo.")
         if self.end_frame is not None and self.end_frame < self.start_frame:
             raise ValueError("El frame final no puede ser menor que el inicial.")
+        if self.layout_mode not in {"individual", "horizontal"}:
+            raise ValueError("El modo de montaje no es válido.")
+        if any(index < 0 for index in self.selected_frames):
+            raise ValueError("La selección manual contiene frames inválidos.")
+        if len(set(self.selected_frames)) != len(self.selected_frames):
+            raise ValueError("La selección manual contiene frames repetidos.")
 
 
 @dataclass(frozen=True)
