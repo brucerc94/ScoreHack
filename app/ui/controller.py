@@ -310,8 +310,8 @@ class AppController(QObject):
             return
 
         first, second = self._selected_frames[join], self._selected_frames[join + 1]
-        minimum = max(8, int(self._montage_frame_width * 0.05))
-        maximum = max(minimum, int(self._montage_frame_width * 0.90))
+        minimum = 0
+        maximum = max(1, int(self._montage_frame_width * 0.70))
         overlap = max(minimum, min(int(round(value)), maximum))
         self._manual_overlaps[(first, second)] = overlap
         self.joinChanged.emit()
