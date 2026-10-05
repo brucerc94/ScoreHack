@@ -20,7 +20,7 @@ Rectangle {
 
             Label {
                 text: backend.layoutMode === "horizontal"
-                      ? "Construcción de partitura"
+                      ? "Selector de frames"
                       : "Vista previa"
                 color: "#f4f7fb"
                 font.pixelSize: 16
@@ -40,7 +40,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: backend.layoutMode === "individual"
-            Layout.preferredHeight: backend.layoutMode === "horizontal" ? 220 : -1
+            Layout.preferredHeight: backend.layoutMode === "horizontal" ? 190 : -1
             radius: 12
             color: "#080c13"
             border.color: "#1c293b"
@@ -100,16 +100,16 @@ Rectangle {
             spacing: 8
 
             Button {
-                Layout.preferredWidth: 185
-                text: backend.currentFrameSelected
-                      ? "Quitar del montaje"
-                      : "Añadir al montaje"
-                enabled: backend.frameCount > 0 && !backend.busy
+                Layout.preferredWidth: 150
+                text: "Agregar frame"
+                enabled: backend.frameCount > 0
+                         && !backend.busy
+                         && !backend.currentFrameSelected
                 onClicked: backend.toggleCurrentFrameSelection()
             }
 
             Button {
-                Layout.preferredWidth: 115
+                Layout.preferredWidth: 100
                 text: "Vaciar"
                 enabled: backend.selectedFrameCount > 0 && !backend.busy
                 onClicked: backend.clearFrameSelection()
@@ -118,8 +118,8 @@ Rectangle {
             Label {
                 Layout.fillWidth: true
                 text: backend.selectedFrameCount === 0
-                      ? "Selecciona frames en el orden que quieras unir."
-                      : backend.selectedFrameCount + " frames en el montaje"
+                      ? "Selecciona un frame y pulsa Agregar frame."
+                      : backend.selectedFrameCount + " frames seleccionados"
                 color: "#77879f"
                 elide: Text.ElideRight
             }
@@ -128,7 +128,7 @@ Rectangle {
         ListView {
             visible: backend.layoutMode === "horizontal" && backend.selectedFrameCount > 0
             Layout.fillWidth: true
-            Layout.preferredHeight: 68
+            Layout.preferredHeight: 72
             orientation: ListView.Horizontal
             spacing: 6
             clip: true
@@ -136,7 +136,7 @@ Rectangle {
 
             delegate: Rectangle {
                 width: 92
-                height: 62
+                height: 68
                 radius: 8
                 color: "#0d1522"
                 border.color: "#2b3b53"
@@ -178,19 +178,28 @@ Rectangle {
             visible: backend.layoutMode === "horizontal"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 120
+            Layout.minimumHeight: 160
             radius: 12
             color: "#080c13"
             border.color: "#1c293b"
             clip: true
 
-            Image {
+            ScrollView {
                 anchors.fill: parent
                 anchors.margins: 8
-                source: backend.montagePreviewSource
-                fillMode: Image.PreserveAspectFit
-                asynchronous: true
-                cache: false
+                clip: true
+                ScrollBar.horizontal.policy: ScrollBar.AsNeeded
+                ScrollBar.vertical.policy: ScrollBar.AsNeeded
+
+                Image {
+                    id: montageImage
+                    source: backend.montagePreviewSource
+                    asynchronous: true
+                    cache: false
+                    fillMode: Image.PreserveAspectFit
+                    width: Math.max(sourceSize.width, parent.width)
+                    height: Math.max(sourceSize.height, parent.height)
+                }
             }
 
             BusyIndicator {
@@ -205,8 +214,8 @@ Rectangle {
                 anchors.centerIn: parent
                 visible: !backend.montageBusy && backend.montagePreviewSource === ""
                 text: backend.selectedFrameCount < 2
-                      ? "Selecciona un segundo frame para comenzar el montaje"
-                      : "Preparando montaje…"
+                      ? "Selecciona al menos 2 frames para comenzar."
+                      : "Preparando unión horizontal…"
                 color: "#59677c"
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -217,7 +226,7 @@ Rectangle {
                 anchors.leftMargin: 10
                 anchors.bottomMargin: 8
                 text: backend.montagePreviewSource !== ""
-                      ? "Montaje en vivo"
+                      ? "Previsualización horizontal"
                       : ""
                 color: "#71829a"
                 font.pixelSize: 10
