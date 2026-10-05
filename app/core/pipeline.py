@@ -20,7 +20,7 @@ logger = logging.getLogger("scorecapture")
 
 
 class ExtractionPipeline:
-    """Orquestador de alto nivel; no conoce nada de la interfaz gráfica."""
+    """High-level orchestrator; independent of the graphical interface."""
 
     def __init__(self, on_event: EventCallback | None = None) -> None:
         self.workspace = Workspace()
