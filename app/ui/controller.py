@@ -21,7 +21,7 @@ logger = logging.getLogger("scorecapture")
 
 
 class AppController(QObject):
-    """Puente Qt/QML. La lógica pesada permanece fuera de la interfaz."""
+    """Qt/QML bridge. Heavy processing stays outside the UI."""
 
     statusChanged = Signal()
     progressChanged = Signal()
