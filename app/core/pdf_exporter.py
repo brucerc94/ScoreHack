@@ -94,11 +94,10 @@ def _draw_horizontal_pages(
     margin_pt: float,
 ) -> None:
     """
-    Acomoda segmentos de una reconstrucción como sistemas musicales dentro
-    de una hoja A4 vertical.
+    Places reconstructed score segments as musical systems on a vertical A4 page.
 
-    Cada sistema usa el mismo ancho útil. Si el conjunto no entra en una hoja,
-    todos se reducen proporcionalmente para conservar una composición uniforme.
+    Every system uses the same usable width. If the group does not fit,
+    all systems are scaled proportionally to preserve a uniform layout.
     """
     if not paths:
         return
