@@ -32,21 +32,22 @@ ApplicationWindow {
             Layout.fillHeight: true
         }
 
-        ScrollView {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
             ColumnLayout {
-                width: Math.max(1180, parent.width - 40)
-                x: 20
+                anchors.fill: parent
+                anchors.leftMargin: 20
+                anchors.rightMargin: 20
+                anchors.topMargin: 8
+                anchors.bottomMargin: 8
                 spacing: 12
 
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 54
-                    Layout.topMargin: 10
 
                     ColumnLayout {
                         Layout.fillWidth: true
@@ -79,7 +80,7 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 650
+                    Layout.fillHeight: true
                     spacing: 14
 
                     PreviewCard {
@@ -94,10 +95,8 @@ ApplicationWindow {
                 }
 
                 ActivityCard {
-                    Layout.preferredHeight: 90
+                    Layout.preferredHeight: 88
                 }
-
-                Item { Layout.preferredHeight: 8 }
             }
         }
     }
