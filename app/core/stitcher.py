@@ -28,41 +28,39 @@ def _resize_height(image: np.ndarray, height: int) -> np.ndarray:
 
 def _match_overlap(left: np.ndarray, right: np.ndarray) -> tuple[int, float]:
     """
-    Busca el solape horizontal usando una banda central de la partitura.
+    Estima el solape usando coincidencia de plantillas grandes y consenso.
 
-    Se prueban dos anchos de plantilla. Si ambos encuentran prácticamente la
-    misma frontera, aumenta la confianza de la detección y se evita depender
-    únicamente de coincidencias puntuales de ORB.
+    Solo se consideran solapes razonables para una partitura que se desplaza
+    lateralmente. Una detección de baja confianza se devuelve como sugerencia,
+    pero no se aplica automáticamente.
     """
     height, left_width = left.shape[:2]
     right_width = right.shape[1]
 
-    y0 = int(height * 0.15)
-    y1 = int(height * 0.85)
-    search_start = int(left_width * 0.15)
+    y0 = int(height * 0.12)
+    y1 = int(height * 0.88)
+    search_start = int(left_width * 0.25)
     search_end = int(left_width * 0.95)
+    min_overlap = int(left_width * 0.08)
+    max_overlap = int(left_width * 0.70)
 
+    left_gray = cv2.cvtColor(left[y0:y1], cv2.COLOR_BGR2GRAY)
+    right_gray = cv2.cvtColor(right[y0:y1], cv2.COLOR_BGR2GRAY)
+
+    left_edges = cv2.Canny(left_gray, 40, 120)
+    right_edges = cv2.Canny(right_gray, 40, 120)
     estimates: list[tuple[int, float]] = []
 
-    for template_ratio in (0.12, 0.18):
-        template_width = max(32, int(right_width * template_ratio))
+    for template_ratio in (0.20, 0.30, 0.40):
+        template_width = max(48, int(right_width * template_ratio))
         if template_width >= right_width:
             continue
 
-        template = cv2.cvtColor(
-            right[y0:y1, :template_width],
-            cv2.COLOR_BGR2GRAY,
-        )
-        search = cv2.cvtColor(
-            left[y0:y1, search_start:search_end],
-            cv2.COLOR_BGR2GRAY,
-        )
-
+        template = right_edges[:, :template_width]
+        search = left_edges[:, search_start:search_end]
         if search.shape[1] <= template.shape[1]:
             continue
 
-        template = cv2.GaussianBlur(template, (5, 5), 0)
-        search = cv2.GaussianBlur(search, (5, 5), 0)
         response = cv2.matchTemplate(
             search,
             template,
@@ -72,24 +70,27 @@ def _match_overlap(left: np.ndarray, right: np.ndarray) -> tuple[int, float]:
         position = search_start + max_location[0]
         overlap = left_width - position
 
-        if 0.08 * left_width <= overlap <= 0.90 * left_width:
+        if min_overlap <= overlap <= max_overlap:
             estimates.append((int(round(overlap)), float(score)))
 
     if not estimates:
-        fallback = max(8, int(left_width * 0.20))
-        return fallback, 0.0
+        return max(min_overlap, int(left_width * 0.20)), 0.0
 
-    best_overlap, best_score = max(estimates, key=lambda item: item[1])
+    overlaps = np.array([item[0] for item in estimates], dtype=np.float32)
+    scores = np.array([item[1] for item in estimates], dtype=np.float32)
+    best_index = int(np.argmax(scores))
+    best_overlap = int(estimates[best_index][0])
+    best_score = float(scores[best_index])
 
-    if len(estimates) == 2:
-        other_overlap = estimates[0][0] if estimates[1][0] == best_overlap else estimates[1][0]
-        agreement = 1.0 - abs(best_overlap - other_overlap) / max(1, left_width)
-        confidence = max(0.0, min(1.0, 0.7 * best_score + 0.3 * agreement))
-    else:
-        confidence = max(0.0, min(1.0, best_score))
+    spread = float(overlaps.max() - overlaps.min())
+    agreement = max(0.0, 1.0 - spread / max(1.0, left_width * 0.12))
+    confidence = max(
+        0.0,
+        min(1.0, 0.75 * max(0.0, best_score) + 0.25 * agreement),
+    )
 
-    if best_score < 0.35 or confidence < 0.45:
-        return max(8, int(left_width * 0.20)), 0.0
+    if len(estimates) < 2 or best_score < 0.45:
+        confidence *= 0.75
 
     return best_overlap, confidence
 
@@ -143,7 +144,7 @@ def _validate_overrides(
             f"Se esperaban {frame_count - 1} ajustes de unión y se recibieron {len(overrides)}."
         )
     minimum = max(8, int(frame_width * 0.05))
-    maximum = max(minimum, int(frame_width * 0.90))
+    maximum = max(minimum, int(frame_width * 0.70))
     if any(
         overlap is not None and (overlap < minimum or overlap > maximum)
         for overlap in overrides
