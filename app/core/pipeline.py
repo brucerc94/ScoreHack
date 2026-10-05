@@ -10,6 +10,7 @@ from .downloader import download_youtube, is_youtube_url
 from .frame_extractor import extract_frames, inspect_video
 from .models import ExtractionSettings, PreparationResult
 from .motion_tracker import stabilize_frames
+from .overlay_cleaner import remove_transient_overlays
 from .pdf_exporter import export_pdf
 from .workspace import Workspace
 
@@ -105,9 +106,19 @@ class ExtractionPipeline:
         )
         self._check_cancel(cancel_event)
 
+        working_crops = cropped
+        if settings.remove_overlays:
+            self._emit("status", "Quitando resaltadores y cursores móviles…")
+            working_crops = remove_transient_overlays(
+                cropped,
+                self.workspace.cleaned,
+                on_progress=lambda p, m: self._emit("progress", (p, m)),
+            )
+            self._check_cancel(cancel_event)
+
         self._emit("status", "Eliminando fotogramas repetidos…")
         unique = remove_consecutive_duplicates(
-            cropped,
+            working_crops,
             settings.duplicate_threshold,
             lambda p, m: self._emit("progress", (p, m)),
         )
