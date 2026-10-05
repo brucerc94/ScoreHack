@@ -17,14 +17,17 @@ Rectangle {
         title: "Guardar PDF"
         nameFilters: ["PDF (*.pdf)"]
         fileMode: FileDialog.SaveFile
-        currentFile: "partitura.pdf"
-
         onAccepted: {
-            backend.generateTo(
-                selectedFile.toLocalFile(),
-                parseInt(pagesCombo.currentText)
-            )
+            var path = root.localPath(selectedFile)
+            backend.generateTo(path, parseInt(pagesCombo.currentText))
         }
+    }
+
+    function localPath(urlValue) {
+        var value = String(urlValue)
+        if (value.indexOf("file:///") === 0)
+            value = value.substring(8)
+        return decodeURIComponent(value)
     }
 
     ColumnLayout {
@@ -199,12 +202,25 @@ Rectangle {
 
         Item { Layout.fillHeight: true }
 
-        Button {
+        RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 40
-            text: "Generar PDF"
-            enabled: backend.frameCount > 0 && !backend.busy
-            onClicked: pdfDialog.open()
+            spacing: 8
+
+            Button {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 40
+                text: "Vista previa"
+                enabled: backend.frameCount > 0 && !backend.busy
+                onClicked: backend.preview(parseInt(pagesCombo.currentText))
+            }
+
+            Button {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 40
+                text: "Generar PDF"
+                enabled: backend.frameCount > 0 && !backend.busy
+                onClicked: pdfDialog.open()
+            }
         }
     }
 }
