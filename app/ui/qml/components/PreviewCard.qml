@@ -217,7 +217,7 @@ Rectangle {
         Rectangle {
             visible: backend.layoutMode === "horizontal" && backend.joinCount > 0
             Layout.fillWidth: true
-            Layout.preferredHeight: 152
+            Layout.preferredHeight: 160
             radius: 10
             color: "#0d1522"
             border.color: "#1b2a3f"
@@ -231,7 +231,7 @@ Rectangle {
                     Layout.fillWidth: true
 
                     Label {
-                        text: "Ajuste de uniones"
+                        text: "Solapes"
                         color: "#dbe5f2"
                         font.pixelSize: 12
                         font.bold: true
@@ -240,7 +240,7 @@ Rectangle {
                     Item { Layout.fillWidth: true }
 
                     Label {
-                        text: "Cada unión tiene su propio solape"
+                        text: "Cada unión se ajusta por separado"
                         color: "#677990"
                         font.pixelSize: 10
                     }
@@ -251,13 +251,13 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    spacing: 4
+                    spacing: 5
                     model: backend.joinItems
                     boundsBehavior: Flickable.StopAtBounds
 
                     delegate: Rectangle {
                         width: joinList.width
-                        height: 58
+                        height: 62
                         radius: 8
                         color: "#111a28"
                         border.color: modelData.manual ? "#315f91" : "#1b2a3f"
@@ -296,7 +296,7 @@ Rectangle {
                                     Label {
                                         text: modelData.confidence > 0
                                               ? Math.round(modelData.confidence * 100) + "%"
-                                              : "sin detección"
+                                              : "—"
                                         color: "#65758c"
                                         font.pixelSize: 9
                                     }
@@ -304,7 +304,7 @@ Rectangle {
                                     Label {
                                         text: modelData.manual
                                               ? "Manual"
-                                              : (modelData.autoReliable ? "Auto aplicado" : "Requiere ajuste")
+                                              : (modelData.autoReliable ? "Auto" : "Manual recomendado")
                                         color: modelData.manual ? "#7aaef2" : "#697a91"
                                         font.pixelSize: 9
                                     }
@@ -316,8 +316,7 @@ Rectangle {
                                     from: Math.max(8, Math.round(backend.montageFrameWidth * 0.05))
                                     to: Math.max(16, Math.round(backend.montageFrameWidth * 0.70))
                                     value: modelData.overlap
-                                    enabled: backend.montageFrameWidth > 0
-                                             && !backend.montageBusy
+                                    enabled: backend.montageFrameWidth > 0 && !backend.montageBusy
                                     onPressedChanged: {
                                         if (!pressed)
                                             backend.setJoinOverlap(modelData.join, value)
@@ -334,7 +333,7 @@ Rectangle {
                             }
 
                             Button {
-                                Layout.preferredWidth: 42
+                                Layout.preferredWidth: 44
                                 Layout.preferredHeight: 24
                                 text: "Auto"
                                 enabled: !backend.montageBusy
