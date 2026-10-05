@@ -44,7 +44,7 @@ Rectangle {
                     spacing: 1
 
                     Label {
-                        text: "ScoreCapture"
+                        text: "ScoreHack"
                         color: "#f4f7fb"
                         font.pixelSize: 18
                         font.bold: true
