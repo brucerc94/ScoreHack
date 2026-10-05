@@ -1,7 +1,8 @@
+PySide6==6.11.2
 opencv-python
 numpy
 pillow
 scikit-image
 fpdf2
-matplotlib
-yt-dlp 
+yt-dlp
+pytest

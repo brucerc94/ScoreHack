@@ -1,3 +1,12 @@
-[build-system] 
-requires = ["setuptools", "wheel"] 
-build-backend = "setuptools.build_meta" 
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "extractor-partituras-youtube"
+version = "3.0.0"
+description = "Desktop sheet-music extractor with manual frame selection, horizontal reconstruction, page cuts, and A4 PDF export."
+requires-python = ">=3.10,<3.15"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
