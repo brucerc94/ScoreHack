@@ -68,7 +68,7 @@ The result is a raster-based PDF intended for printing or archiving.
 | Page cuts | Add and drag manual page boundaries |
 | A4 output | Compose the final document on a fixed A4 canvas |
 | Preview | Review the document before final export |
-| Windows workflow | Run or build with the included batch scripts |
+| Windows workflow | Run the application directly on Windows |
 
 ---
 
