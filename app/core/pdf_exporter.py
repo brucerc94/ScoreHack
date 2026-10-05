@@ -150,15 +150,15 @@ def export_pdf(
 ) -> Path:
     paths = list(image_paths)
     if not paths:
-        raise ValueError("No hay partituras únicas para exportar.")
+        raise ValueError("There are no score images to export.")
     if not 1 <= sheets_per_page <= 8:
-        raise ValueError("Las partituras por página deben estar entre 1 y 8.")
+        raise ValueError("Scores per page must be between 1 and 8.")
     if layout_mode not in {"individual", "horizontal"}:
-        raise ValueError(f"Modo de layout no soportado: {layout_mode}")
+        raise ValueError(f"Unsupported layout mode: {layout_mode}")
 
     page_key = page_size.upper()
     if page_key not in _PAGE_SIZES:
-        raise ValueError(f"Tamaño de página no soportado: {page_size}")
+        raise ValueError(f"Unsupported page size: {page_size}")
 
     # ScoreCapture trabaja siempre sobre A4 para que el resultado impreso sea
     # predecible. Los tamaños alternativos se mantienen en la API por compatibilidad.
