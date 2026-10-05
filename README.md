@@ -14,6 +14,7 @@ La aplicación usa **Qt 6 + QML** para una interfaz fluida y moderna. PySide6 es
 - Corrige automáticamente pequeños desplazamientos de cámara o de la partitura usando como referencia únicamente la zona de recorte seleccionada.
 - Permite previsualizar un frame y ajustar recorte superior e inferior.
 - Permite definir el rango de frames a procesar.
+- Permite abrir una vista previa temporal del PDF antes de guardarlo.
 - Elimina frames consecutivos visualmente repetidos mediante SSIM después de estabilizarlos.
 - Genera páginas A4 con una cantidad configurable de partituras por página.
 - Guarda únicamente el PDF final en la ruta elegida.
@@ -75,6 +76,7 @@ python -m pytest
 2. Pega la URL o pulsa **Subir video**.
 3. Pulsa **Analizar video** para extraer los frames sin fijar todavía la zona de seguimiento.
 4. Ajusta recorte, frame de vista previa y rango. La corrección de movimiento usa ese recorte como región de seguimiento cuando generas el PDF.
+5. Pulsa **Vista previa** para generar una copia temporal y abrirla con el visor PDF predeterminado, o **Generar PDF** para guardarlo definitivamente.
 5. Define cuántas partituras deben caber por página.
 6. Pulsa **Generar PDF** y elige dónde guardarlo.
 
