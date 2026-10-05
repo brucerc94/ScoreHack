@@ -90,7 +90,7 @@ ApplicationWindow {
                 }
 
                 ActivityCard {
-                    Layout.preferredHeight: 250
+                    Layout.preferredHeight: 200
                 }
 
                 Item { Layout.preferredHeight: 10 }
