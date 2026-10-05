@@ -8,10 +8,12 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtGui import QIcon, QGuiApplication
 from PySide6.QtQuickControls2 import QQuickStyle
 
+from app.core.logging_utils import configure_logging
 from app.ui.controller import AppController
 
 
 def run() -> int:
+    configure_logging()
     QQuickStyle.setStyle("Basic")
     app = QGuiApplication(sys.argv)
     app.setApplicationName("ScoreCapture")
