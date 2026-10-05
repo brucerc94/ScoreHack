@@ -205,33 +205,62 @@ class AppController(QObject):
     def joinCount(self) -> int:
         return max(0, len(self._selected_frames) - 1)
 
-    @Property(list, notify=joinChanged)
-    def joinItems(self) -> list[dict]:
-        items: list[dict] = []
-        for join in range(self.joinCount):
-            first = self._selected_frames[join]
-            second = self._selected_frames[join + 1]
-            pair = (first, second)
-            manual = self._manual_overlaps.get(pair)
-            auto = self._auto_overlaps[join] if join < len(self._auto_overlaps) else 0
-            confidence = (
-                self._join_confidences[join]
-                if join < len(self._join_confidences)
-                else 0.0
-            )
-            effective = manual if manual is not None else (
-                auto if confidence >= AUTO_OVERLAP_MIN_CONFIDENCE else 0
-            )
-            items.append({
-                "join": join,
-                "label": f"Frame {first + 1} → Frame {second + 1}",
-                "overlap": effective,
-                "autoOverlap": auto,
-                "confidence": confidence,
-                "manual": manual is not None,
-                "autoReliable": confidence >= AUTO_OVERLAP_MIN_CONFIDENCE,
-            })
-        return items
+    @Slot(int, result=str)
+    def joinLabel(self, join: int) -> str:
+        if not 0 <= join < self.joinCount:
+            return ""
+        first = self._selected_frames[join] + 1
+        second = self._selected_frames[join + 1] + 1
+        return f"Frame {first} → Frame {second}"
+
+    @Slot(int, result=int)
+    def joinOverlap(self, join: int) -> int:
+        if not 0 <= join < self.joinCount:
+            return 0
+
+        pair = (
+            self._selected_frames[join],
+            self._selected_frames[join + 1],
+        )
+        manual = self._manual_overlaps.get(pair)
+        if manual is not None:
+            return manual
+
+        if join < len(self._auto_overlaps):
+            confidence = self._join_confidences[join]
+            if confidence >= AUTO_OVERLAP_MIN_CONFIDENCE:
+                return self._auto_overlaps[join]
+
+        return 0
+
+    @Slot(int, result=int)
+    def joinAutoOverlap(self, join: int) -> int:
+        if 0 <= join < len(self._auto_overlaps):
+            return self._auto_overlaps[join]
+        return 0
+
+    @Slot(int, result=int)
+    def joinConfidencePercent(self, join: int) -> int:
+        if 0 <= join < len(self._join_confidences):
+            return round(self._join_confidences[join] * 100)
+        return 0
+
+    @Slot(int, result=bool)
+    def joinIsManual(self, join: int) -> bool:
+        if not 0 <= join < self.joinCount:
+            return False
+        pair = (
+            self._selected_frames[join],
+            self._selected_frames[join + 1],
+        )
+        return pair in self._manual_overlaps
+
+    @Slot(int, result=bool)
+    def joinAutoReliable(self, join: int) -> bool:
+        return (
+            0 <= join < len(self._join_confidences)
+            and self._join_confidences[join] >= AUTO_OVERLAP_MIN_CONFIDENCE
+        )
 
     @Property(int, notify=joinChanged)
     def montageFrameWidth(self) -> int:
