@@ -22,6 +22,7 @@ class ExtractionSettings:
     layout_mode: str = "individual"
     selected_frames: tuple[int, ...] = ()
     overlap_overrides: tuple[int | None, ...] = ()
+    layout_cuts: tuple[float, ...] = ()
 
     def validate(self) -> None:
         if self.interval_seconds <= 0:
@@ -44,6 +45,13 @@ class ExtractionSettings:
             raise ValueError("La selección manual contiene frames repetidos.")
         if any(overlap is not None and overlap < 0 for overlap in self.overlap_overrides):
             raise ValueError("Los solapes no pueden ser negativos.")
+        previous_cut = 0.0
+        for cut in self.layout_cuts:
+            if not 0.0 < cut < 1.0:
+                raise ValueError("Los cortes deben estar entre 0 % y 100 %.")
+            if cut <= previous_cut:
+                raise ValueError("Los cortes deben estar ordenados y no repetidos.")
+            previous_cut = cut
 
 
 @dataclass(frozen=True)
