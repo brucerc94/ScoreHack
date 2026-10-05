@@ -20,7 +20,7 @@ Rectangle {
         }
 
         Label {
-            text: "Extractor de partituras"
+            text: "Sheet music extractor"
             color: "#71829a"
             font.pixelSize: 11
             Layout.bottomMargin: 20
@@ -34,7 +34,7 @@ Rectangle {
 
             Label {
                 anchors.centerIn: parent
-                text: "Extraer partitura"
+                text: "Extract sheet music"
                 color: "white"
                 font.pixelSize: 12
                 font.bold: true
@@ -42,7 +42,7 @@ Rectangle {
         }
 
         Label {
-            text: "FLUJO"
+            text: "WORKFLOW"
             color: "#607089"
             font.pixelSize: 10
             font.bold: true
@@ -68,20 +68,20 @@ Rectangle {
                 }
 
                 Label {
-                    text: "Fuente"
+                    text: "Source"
                     color: "#d0d8e5"
                     font.pixelSize: 11
                 }
             }
         }
 
-        Label { text: "02  Recorte y reconstrucción"; color: "#8b98ad"; font.pixelSize: 11 }
-        Label { text: "03  Exportar PDF"; color: "#8b98ad"; font.pixelSize: 11 }
+        Label { text: "02  Crop & Reconstruction"; color: "#8b98ad"; font.pixelSize: 11 }
+        Label { text: "03  Export PDF"; color: "#8b98ad"; font.pixelSize: 11 }
 
         Item { Layout.fillHeight: true }
 
         Label {
-            text: "El procesamiento ocurre en segundo plano."
+            text: "Processing runs in the background."
             color: "#5f6e84"
             font.pixelSize: 9
             wrapMode: Text.WordWrap
