@@ -20,7 +20,7 @@ ApplicationWindow {
            | Qt.WindowMinimizeButtonHint
            | Qt.WindowCloseButtonHint
 
-    title: "ScoreCapture — Sheet Music Extractor"
+    title: "ScoreHack — ScoreHack — Sheet Music Extractor"
     color: "#0a0f18"
 
     Dialog {
