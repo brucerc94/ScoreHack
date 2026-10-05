@@ -8,29 +8,42 @@ echo ============================================
 echo.
 
 if not exist venv\Scripts\python.exe (
-    echo ERROR: No se encontro el entorno virtual.
-    echo.
-    echo Crea el entorno con:
-    echo   python -m venv venv
-    echo.
-    pause
-    exit /b 1
+    echo No se encontro el entorno virtual. Creandolo...
+    python -m venv venv
+    if errorlevel 1 goto :error
 )
 
 call venv\Scripts\activate.bat
+if errorlevel 1 goto :error
+
+echo Verificando dependencias...
+venv\Scripts\python.exe -c "import customtkinter, cv2, PIL, skimage, fpdf, yt_dlp" >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: No se pudo activar el entorno virtual.
-    pause
-    exit /b 1
+    echo Dependencias faltantes. Instalando...
+    venv\Scripts\python.exe -m pip install --upgrade pip
+    if errorlevel 1 goto :error
+    venv\Scripts\python.exe -m pip install -r requirements.txt
+    if errorlevel 1 goto :error
 )
 
-python -m app.main
+echo.
+echo Iniciando programa...
+echo.
+
+venv\Scripts\python.exe -m app.main
 set "EXIT_CODE=%errorlevel%"
 
 if not "%EXIT_CODE%"=="0" (
     echo.
     echo El programa termino con codigo %EXIT_CODE%.
-    pause
+    goto :error_pause
 )
 
-exit /b %EXIT_CODE%
+exit /b 0
+
+:error
+echo.
+echo ERROR: No se pudo preparar o iniciar el programa.
+:error_pause
+pause
+exit /b 1
