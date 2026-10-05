@@ -12,7 +12,7 @@ from app.core.pipeline import ExtractionPipeline
 
 
 class AppController(QObject):
-    """Puente Qt/QML. Los trabajadores nunca modifican directamente la UI."""
+    """Puente Qt/QML. La lógica pesada permanece fuera de la interfaz."""
 
     statusChanged = Signal()
     progressChanged = Signal()
@@ -29,6 +29,8 @@ class AppController(QObject):
     removeOverlaysChanged = Signal()
     layoutModeChanged = Signal()
     selectionChanged = Signal()
+    montagePreviewChanged = Signal()
+    montageBusyChanged = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -45,17 +47,27 @@ class AppController(QObject):
         self._crop_top = 0
         self._crop_bottom = 0
         self._pipeline: ExtractionPipeline | None = None
+        self._montage_pipeline: ExtractionPipeline | None = None
         self._cancel_event = Event()
+        self._montage_cancel_event = Event()
         self._motion_correction = True
         self._remove_overlays = True
         self._layout_mode = "individual"
-        self._selected_frames: set[int] = set()
+        self._selected_frames: list[int] = []
         self._events: Queue[tuple[str, object]] = Queue()
+        self._montage_busy = False
+        self._montage_generation = 0
 
         self._event_timer = QTimer(self)
         self._event_timer.setInterval(50)
         self._event_timer.timeout.connect(self._drain_events)
         self._event_timer.start()
+
+        self._montage_timer = QTimer(self)
+        self._montage_timer.setSingleShot(True)
+        self._montage_timer.setInterval(180)
+        self._montage_timer.timeout.connect(self._refresh_montage_preview)
+        self._montage_preview_source = ""
 
     def _set_status(self, value: str) -> None:
         self._status = value
@@ -70,6 +82,11 @@ class AppController(QObject):
             self._busy = value
             self.busyChanged.emit()
 
+    def _set_montage_busy(self, value: bool) -> None:
+        if self._montage_busy != value:
+            self._montage_busy = value
+            self.montageBusyChanged.emit()
+
     @Property(str, notify=statusChanged)
     def status(self) -> str:
         return self._status
@@ -81,6 +98,10 @@ class AppController(QObject):
     @Property(bool, notify=busyChanged)
     def busy(self) -> bool:
         return self._busy
+
+    @Property(bool, notify=montageBusyChanged)
+    def montageBusy(self) -> bool:
+        return self._montage_busy
 
     @Property(int, notify=prepared)
     def frameCount(self) -> int:
@@ -141,14 +162,24 @@ class AppController(QObject):
     def currentFrameSelected(self) -> bool:
         return self._current_frame in self._selected_frames
 
+    @Property(list, notify=selectionChanged)
+    def selectedFrameSources(self) -> list[str]:
+        return [
+            self._frame_paths[index].resolve().as_uri()
+            for index in self._selected_frames
+            if 0 <= index < len(self._frame_paths)
+        ]
+
     @Property(str, notify=selectionChanged)
     def selectionSummary(self) -> str:
         if not self._selected_frames:
-            return "Sin selección manual"
-        indices = sorted(index + 1 for index in self._selected_frames)
-        preview = ", ".join(str(index) for index in indices[:8])
-        suffix = "…" if len(indices) > 8 else ""
-        return f"{len(indices)} seleccionados: {preview}{suffix}"
+            return "Sin frames seleccionados"
+        numbers = ", ".join(str(index + 1) for index in self._selected_frames)
+        return f"{len(self._selected_frames)} frames: {numbers}"
+
+    @Property(str, notify=montagePreviewChanged)
+    def montagePreviewSource(self) -> str:
+        return self._montage_preview_source
 
     @Slot(str)
     def setSourceText(self, value: str) -> None:
@@ -172,31 +203,54 @@ class AppController(QObject):
     def setLayoutMode(self, value: str) -> None:
         if value not in {"individual", "horizontal"}:
             return
-        if self._layout_mode != value:
-            self._layout_mode = value
-            self.layoutModeChanged.emit()
+        if self._layout_mode == value:
+            return
+
+        self._layout_mode = value
+        self.layoutModeChanged.emit()
+
+        if value == "horizontal":
+            self._schedule_montage_refresh()
+        else:
+            self._cancel_montage_preview()
+            self._montage_preview_source = ""
+            self.montagePreviewChanged.emit()
 
     @Slot()
     def toggleCurrentFrameSelection(self) -> None:
-        if not self._frame_paths:
+        if not self._frame_paths or self._layout_mode != "horizontal":
             return
+
         if self._current_frame in self._selected_frames:
             self._selected_frames.remove(self._current_frame)
         else:
-            self._selected_frames.add(self._current_frame)
+            self._selected_frames.append(self._current_frame)
+
         self.selectionChanged.emit()
+        self._schedule_montage_refresh()
+
+    @Slot(int)
+    def removeSelectedFrame(self, position: int) -> None:
+        if not 0 <= position < len(self._selected_frames):
+            return
+        self._selected_frames.pop(position)
+        self.selectionChanged.emit()
+        self._schedule_montage_refresh()
 
     @Slot()
     def clearFrameSelection(self) -> None:
-        if self._selected_frames:
-            self._selected_frames.clear()
-            self.selectionChanged.emit()
+        if not self._selected_frames:
+            return
+        self._selected_frames.clear()
+        self.selectionChanged.emit()
+        self._schedule_montage_refresh()
 
     @Slot(bool)
     def setRemoveOverlays(self, value: bool) -> None:
         if self._remove_overlays != bool(value):
             self._remove_overlays = bool(value)
             self.removeOverlaysChanged.emit()
+            self._schedule_montage_refresh()
 
     @Slot(float)
     def setInterval(self, value: float) -> None:
@@ -218,6 +272,12 @@ class AppController(QObject):
             return
 
         self._close_pipeline()
+        self._close_montage_pipeline()
+        self._selected_frames.clear()
+        self.selectionChanged.emit()
+        self._montage_preview_source = ""
+        self.montagePreviewChanged.emit()
+
         self._cancel_event.clear()
         self._set_busy(True)
         self._set_progress(0.0)
@@ -231,7 +291,9 @@ class AppController(QObject):
     def reset(self) -> None:
         if self._busy:
             return
+
         self._close_pipeline()
+        self._close_montage_pipeline()
         self._preparation = None
         self._frame_paths = ()
         self._current_frame = 0
@@ -241,6 +303,8 @@ class AppController(QObject):
         self._crop_bottom = 0
         self._selected_frames.clear()
         self.selectionChanged.emit()
+        self._montage_preview_source = ""
+        self.montagePreviewChanged.emit()
         self.prepared.emit()
         self.frameChanged.emit()
         self.rangeChanged.emit()
@@ -252,7 +316,10 @@ class AppController(QObject):
     def setFrameIndex(self, value: float) -> None:
         if not self._frame_paths:
             return
-        self._current_frame = max(0, min(int(round(value)), len(self._frame_paths) - 1))
+        self._current_frame = max(
+            0,
+            min(int(round(value)), len(self._frame_paths) - 1),
+        )
         self.frameChanged.emit()
 
     @Slot(float)
@@ -260,7 +327,10 @@ class AppController(QObject):
         if not self._frame_paths:
             return
         maximum = len(self._frame_paths) - 1
-        self._range_start = max(0, min(int(round(value)), self._range_end, maximum))
+        self._range_start = max(
+            0,
+            min(int(round(value)), self._range_end, maximum),
+        )
         self.rangeChanged.emit()
 
     @Slot(float)
@@ -268,7 +338,10 @@ class AppController(QObject):
         if not self._frame_paths:
             return
         maximum = len(self._frame_paths) - 1
-        self._range_end = max(self._range_start, min(int(round(value)), maximum))
+        self._range_end = max(
+            self._range_start,
+            min(int(round(value)), maximum),
+        )
         self.rangeChanged.emit()
 
     @Slot(float)
@@ -276,12 +349,14 @@ class AppController(QObject):
         self._crop_top = max(0, int(round(value)))
         self.cropChanged.emit()
         self.frameChanged.emit()
+        self._schedule_montage_refresh()
 
     @Slot(float)
     def setCropBottom(self, value: float) -> None:
         self._crop_bottom = max(0, int(round(value)))
         self.cropChanged.emit()
         self.frameChanged.emit()
+        self._schedule_montage_refresh()
 
     def _settings(self, sheets_per_page: int) -> ExtractionSettings:
         settings = ExtractionSettings(
@@ -290,20 +365,84 @@ class AppController(QObject):
             crop_bottom=self._crop_bottom,
             start_frame=self._range_start,
             end_frame=self._range_end,
-            sheets_per_page=1 if self._layout_mode == "horizontal" else sheets_per_page,
-            page_size="A4_LANDSCAPE" if self._layout_mode == "horizontal" else "A4",
+            sheets_per_page=(
+                1 if self._layout_mode == "horizontal" else sheets_per_page
+            ),
+            page_size=(
+                "A4_LANDSCAPE" if self._layout_mode == "horizontal" else "A4"
+            ),
             stabilize_motion=self._motion_correction,
             remove_overlays=self._remove_overlays,
             layout_mode=self._layout_mode,
-            selected_frames=tuple(sorted(self._selected_frames)),
+            selected_frames=tuple(self._selected_frames),
         )
         settings.validate()
         return settings
+
+    def _schedule_montage_refresh(self) -> None:
+        if self._layout_mode != "horizontal":
+            return
+        if not self._frame_paths or len(self._selected_frames) < 2:
+            self._cancel_montage_preview()
+            self._montage_preview_source = ""
+            self.montagePreviewChanged.emit()
+            return
+
+        self._montage_timer.start()
+
+    def _cancel_montage_preview(self) -> None:
+        self._montage_cancel_event.set()
+
+    def _refresh_montage_preview(self) -> None:
+        if self._busy or self._layout_mode != "horizontal":
+            return
+        if len(self._selected_frames) < 2:
+            return
+
+        try:
+            settings = self._settings(1)
+        except ValueError as exc:
+            self._handle_montage_error(str(exc))
+            return
+
+        if self._montage_pipeline is None:
+            self._montage_pipeline = ExtractionPipeline()
+        self._montage_pipeline.frame_paths = self._frame_paths
+
+        self._montage_cancel_event.set()
+        self._montage_cancel_event = Event()
+        self._montage_generation += 1
+        generation = self._montage_generation
+
+        output = (
+            self._montage_pipeline.workspace.montages
+            / f"live_montage_{generation:05d}.jpg"
+        )
+
+        self._set_montage_busy(True)
+        self._events.put(("montage_started", None))
+
+        def worker() -> None:
+            try:
+                self._montage_pipeline.preview_montage(
+                    settings,
+                    output,
+                    cancel_event=self._montage_cancel_event,
+                )
+            except InterruptedError:
+                self._events.put(("montage_cancelled", generation))
+            except Exception as exc:
+                self._events.put(("montage_error", (generation, str(exc))))
+            else:
+                self._events.put(("montage_ready", (generation, output)))
+
+        Thread(target=worker, daemon=True).start()
 
     @Slot(int)
     def preview(self, sheets_per_page: int) -> None:
         if self._busy or not self._preparation or not self._pipeline:
             return
+
         try:
             settings = self._settings(sheets_per_page)
         except ValueError as exc:
@@ -317,6 +456,7 @@ class AppController(QObject):
     def generateTo(self, output_path: str, sheets_per_page: int) -> None:
         if self._busy or not self._preparation or not self._pipeline:
             return
+
         try:
             settings = self._settings(sheets_per_page)
         except ValueError as exc:
@@ -388,8 +528,18 @@ class AppController(QObject):
                 self._set_busy(False)
             elif name == "worker_finished":
                 self._set_busy(False)
+            elif name == "montage_started":
+                self._set_montage_busy(True)
+            elif name == "montage_ready":
+                self._handle_montage_ready(payload)
+            elif name == "montage_cancelled":
+                self._set_montage_busy(False)
+            elif name == "montage_error":
+                generation, message = payload
+                if generation == self._montage_generation:
+                    self._handle_montage_error(message)
 
-    def _handle_prepared(self, payload: object) -> None:
+    def _handle_prepared(self, payload: PreparationResult) -> None:
         self._preparation = payload
         self._frame_paths = payload.frame_paths
         self._current_frame = 0
@@ -402,6 +552,18 @@ class AppController(QObject):
         self.rangeChanged.emit()
         self.cropChanged.emit()
         self._set_busy(False)
+
+    def _handle_montage_ready(self, payload: object) -> None:
+        generation, output = payload
+        if generation != self._montage_generation:
+            return
+        self._montage_preview_source = Path(output).resolve().as_uri()
+        self.montagePreviewChanged.emit()
+        self._set_montage_busy(False)
+
+    def _handle_montage_error(self, message: str) -> None:
+        self._set_montage_busy(False)
+        self.logMessage.emit(f"✕ Montaje: {message}")
 
     def _handle_previewed(self, payload: object) -> None:
         output = Path(payload)
@@ -431,9 +593,9 @@ class AppController(QObject):
             self._pipeline.close()
             self._pipeline = None
 
-    def close(self) -> None:
-        self._cancel_event.set()
-        self._event_timer.stop()
-        if not self._busy and self._pipeline:
-            self._pipeline.close()
-            self._pipeline = None
+    def _close_montage_pipeline(self) -> None:
+        self._montage_cancel_event.set()
+        if self._montage_pipeline:
+            self._montage_pipeline.close()
+            self._montage_pipeline = None
+        self._set_montage_busy(False)
