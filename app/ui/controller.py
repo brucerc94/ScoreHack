@@ -29,6 +29,7 @@ class AppController(QObject):
     removeOverlaysChanged = Signal()
     layoutModeChanged = Signal()
     selectionChanged = Signal()
+    currentFrameSelectionChanged = Signal()
     montagePreviewChanged = Signal()
     montageBusyChanged = Signal()
 
@@ -158,7 +159,7 @@ class AppController(QObject):
     def selectedFrameCount(self) -> int:
         return len(self._selected_frames)
 
-    @Property(bool, notify=selectionChanged)
+    @Property(bool, notify=currentFrameSelectionChanged)
     def currentFrameSelected(self) -> bool:
         return self._current_frame in self._selected_frames
 
@@ -227,6 +228,7 @@ class AppController(QObject):
             self._selected_frames.append(self._current_frame)
 
         self.selectionChanged.emit()
+        self.currentFrameSelectionChanged.emit()
         self._schedule_montage_refresh()
 
     @Slot(int)
@@ -275,6 +277,7 @@ class AppController(QObject):
         self._close_montage_pipeline()
         self._selected_frames.clear()
         self.selectionChanged.emit()
+        self.currentFrameSelectionChanged.emit()
         self._montage_preview_source = ""
         self.montagePreviewChanged.emit()
 
@@ -321,6 +324,7 @@ class AppController(QObject):
             min(int(round(value)), len(self._frame_paths) - 1),
         )
         self.frameChanged.emit()
+        self.currentFrameSelectionChanged.emit()
 
     @Slot(float)
     def setRangeStart(self, value: float) -> None:
