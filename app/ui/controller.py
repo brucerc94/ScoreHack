@@ -161,12 +161,7 @@ class AppController(QObject):
         self.logMessage.emit("▶ Analizando fuente…")
 
         self._pipeline = ExtractionPipeline(self._on_pipeline_event)
-        self._run(
-            self._pipeline.prepare,
-            source,
-            self._interval_seconds,
-            self._motion_correction,
-        )
+        self._run(self._pipeline.prepare, source, self._interval_seconds)
 
     @Slot()
     def reset(self) -> None:
@@ -243,6 +238,7 @@ class AppController(QObject):
             start_frame=self._range_start,
             end_frame=self._range_end,
             sheets_per_page=sheets_per_page,
+            stabilize_motion=self._motion_correction,
         )
 
         try:
