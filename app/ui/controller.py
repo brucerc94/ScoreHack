@@ -25,6 +25,7 @@ class AppController(QObject):
     rangeChanged = Signal()
     cropChanged = Signal()
     motionCorrectionChanged = Signal()
+    removeOverlaysChanged = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -43,6 +44,7 @@ class AppController(QObject):
         self._pipeline: ExtractionPipeline | None = None
         self._cancel_event = Event()
         self._motion_correction = True
+        self._remove_overlays = True
 
     def _set_status(self, value: str) -> None:
         self._status = value
@@ -108,6 +110,10 @@ class AppController(QObject):
     def motionCorrection(self) -> bool:
         return self._motion_correction
 
+    @Property(bool, notify=removeOverlaysChanged)
+    def removeOverlays(self) -> bool:
+        return self._remove_overlays
+
     @Property(int, notify=prepared)
     def videoHeight(self) -> int:
         return self._preparation.video_info.height if self._preparation else 0
@@ -133,6 +139,12 @@ class AppController(QObject):
         if self._motion_correction != bool(value):
             self._motion_correction = bool(value)
             self.motionCorrectionChanged.emit()
+
+    @Slot(bool)
+    def setRemoveOverlays(self, value: bool) -> None:
+        if self._remove_overlays != bool(value):
+            self._remove_overlays = bool(value)
+            self.removeOverlaysChanged.emit()
 
     @Slot(float)
     def setInterval(self, value: float) -> None:
@@ -237,6 +249,7 @@ class AppController(QObject):
             end_frame=self._range_end,
             sheets_per_page=sheets_per_page,
             stabilize_motion=self._motion_correction,
+            remove_overlays=self._remove_overlays,
         )
         settings.validate()
         return settings
