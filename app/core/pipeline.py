@@ -173,7 +173,6 @@ class ExtractionPipeline:
         settings: ExtractionSettings,
         output_path: Path,
         cancel_event: Event | None = None,
-        require_selection: bool = True,
         overlap_overrides: tuple[int, ...] = (),
     ) -> MontageResult:
         if settings.layout_mode != "horizontal":
@@ -185,11 +184,9 @@ class ExtractionPipeline:
             work_root=output_path.parent / output_path.stem,
         )
         if len(cropped) < 2:
-            if require_selection:
-                raise ValueError("Selecciona al menos 2 frames para el montaje horizontal.")
-            return cropped[0]
+            raise ValueError("Selecciona al menos 2 frames para el montaje horizontal.")
 
-        self._emit("status", "Colocando frames seleccionados lado a lado…")
+        self._emit("status", "Detectando zonas repetidas entre frames…")
         return stitch_horizontal(
             cropped,
             output_path,
