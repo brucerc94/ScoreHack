@@ -3,7 +3,7 @@ setlocal
 cd /d %~dp0
 
 echo ============================================
-echo   Extractor de Partituras - Build
+echo   Sheet Music Extractor - Build
 echo ============================================
 echo.
 
@@ -27,13 +27,13 @@ python -m PyInstaller --noconfirm --clean --onefile --windowed --name ExtractorP
 if errorlevel 1 goto :error
 
 echo.
-echo BUILD COMPLETADO: dist\ExtractorPartituras.exe
+echo BUILD COMPLETE: dist\ExtractorPartituras.exe
 echo.
 pause
 exit /b 0
 
 :error
 echo.
-echo ERROR: el build no pudo completarse.
+echo ERROR: build could not be completed.
 pause
 exit /b 1
