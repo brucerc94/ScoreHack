@@ -198,26 +198,24 @@ Rectangle {
                 Layout.preferredWidth: 112
                 Layout.fillHeight: true
                 text: "Seleccionar"
+                enabled: !backend.busy
                 onClicked: videoDialog.open()
             }
 
             Button {
-                visible: root.sourceMode === "YouTube"
                 Layout.preferredWidth: 132
                 Layout.fillHeight: true
                 text: "Analizar video"
-                enabled: !backend.busy
-                onClicked: backend.analyze()
+                enabled: !backend.busy && (
+                    root.sourceMode === "YouTube"
+                    || root.localName !== ""
+                )
+                onClicked: {
+                    if (root.sourceMode === "YouTube")
+                        backend.setSourceText(urlField.text)
+                    backend.analyze()
+                }
             }
-        }
-
-        Button {
-            visible: root.sourceMode === "Video local"
-            Layout.preferredWidth: 132
-            Layout.preferredHeight: 34
-            text: "Analizar video"
-            enabled: !backend.busy && root.localName !== ""
-            onClicked: backend.analyze()
         }
     }
 }
