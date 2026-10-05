@@ -244,6 +244,7 @@ class ExtractionPipeline:
             sheets_per_page=settings.sheets_per_page,
             page_size=settings.page_size,
             margin_pt=settings.margin_pt,
+            layout_mode=settings.layout_mode,
         )
         self._emit("progress", (1.0, "PDF generado."))
         return output
