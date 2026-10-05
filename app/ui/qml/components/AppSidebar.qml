@@ -11,19 +11,54 @@ Rectangle {
         anchors.margins: 18
         spacing: 8
 
-        Label {
-            text: "♫  ScoreCapture"
-            color: "#f4f7fb"
-            font.pixelSize: 22
-            font.bold: true
-            Layout.topMargin: 6
-        }
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 72
+            radius: 12
+            color: "#141c2a"
 
-        Label {
-            text: "Sheet music extractor"
-            color: "#71829a"
-            font.pixelSize: 11
-            Layout.bottomMargin: 20
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 10
+
+                Rectangle {
+                    Layout.preferredWidth: 50
+                    Layout.preferredHeight: 50
+                    radius: 10
+                    color: "#0a0f18"
+                    clip: true
+
+                    Image {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        source: appIconUrl
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true
+                        mipmap: true
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 1
+
+                    Label {
+                        text: "ScoreCapture"
+                        color: "#f4f7fb"
+                        font.pixelSize: 18
+                        font.bold: true
+                    }
+
+                    Label {
+                        text: "Sheet music extractor"
+                        color: "#71829a"
+                        font.pixelSize: 9
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                }
+            }
         }
 
         Rectangle {
