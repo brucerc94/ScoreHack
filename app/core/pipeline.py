@@ -9,7 +9,7 @@ from .crop import crop_frames
 from .deduplicator import remove_consecutive_duplicates
 from .downloader import download_youtube, is_youtube_url
 from .frame_extractor import extract_frames, inspect_video
-from .models import ExtractionSettings, PreparationResult
+from .models import ExtractionSettings, MontageResult, PreparationResult
 from .motion_tracker import stabilize_frames
 from .overlay_cleaner import remove_transient_overlays
 from .pdf_exporter import export_pdf
@@ -175,7 +175,7 @@ class ExtractionPipeline:
         cancel_event: Event | None = None,
         require_selection: bool = True,
         overlap_overrides: tuple[int, ...] = (),
-    ):
+    ) -> MontageResult:
         if settings.layout_mode != "horizontal":
             raise ValueError("El montaje horizontal requiere el modo horizontal.")
 
@@ -267,7 +267,7 @@ class ExtractionPipeline:
         settings: ExtractionSettings,
         output_path: Path,
         cancel_event: Event | None = None,
-    ) -> Path:
+    ) -> MontageResult:
         settings.validate()
         if settings.layout_mode != "horizontal":
             raise ValueError("Activa el modo Unir horizontal para ver el montaje.")
