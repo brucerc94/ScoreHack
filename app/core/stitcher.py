@@ -143,8 +143,8 @@ def _validate_overrides(
         raise ValueError(
             f"Se esperaban {frame_count - 1} ajustes de unión y se recibieron {len(overrides)}."
         )
-    minimum = max(8, int(frame_width * 0.05))
-    maximum = max(minimum, int(frame_width * 0.70))
+    minimum = 0
+    maximum = max(1, int(frame_width * 0.70))
     if any(
         overlap is not None and (overlap < minimum or overlap > maximum)
         for overlap in overrides
