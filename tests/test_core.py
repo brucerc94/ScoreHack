@@ -83,3 +83,24 @@ def test_moving_highlight_is_removed_from_score() -> None:
         cleaned = cv2.imread(str(result[1]), cv2.IMREAD_COLOR)
         assert cleaned is not None
         assert int(cleaned[100, 154].mean()) > 220
+
+
+def test_split_panorama_uses_manual_cut_points() -> None:
+    from app.core.layout import split_panorama
+
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        source = root / "panorama.jpg"
+        output = root / "segments"
+        image = np.zeros((20, 100, 3), dtype=np.uint8)
+        image[:, :40] = 50
+        image[:, 40:75] = 120
+        image[:, 75:] = 200
+        assert cv2.imwrite(str(source), image)
+
+        segments = split_panorama((source), (0.4, 0.75), output)
+
+        assert len(segments) == 3
+        assert cv2.imread(str(segments[0]), cv2.IMREAD_COLOR).shape[1] == 40
+        assert cv2.imread(str(segments[1]), cv2.IMREAD_COLOR).shape[1] == 35
+        assert cv2.imread(str(segments[2]), cv2.IMREAD_COLOR).shape[1] == 25
