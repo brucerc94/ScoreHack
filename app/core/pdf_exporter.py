@@ -159,8 +159,8 @@ def export_pdf(
     if page_key not in _PAGE_SIZES:
         raise ValueError(f"Unsupported page size: {page_size}")
 
-    # ScoreCapture trabaja siempre sobre A4 para que el resultado impreso sea
-    # predecible. Los tamaños alternativos se mantienen en la API por compatibilidad.
+    # ScoreCapture uses A4 as the default print canvas for a predictable result.
+    # Alternative page sizes remain supported for API compatibility.
     page_width, page_height = _PAGE_SIZES[page_key]
 
     output_pdf.parent.mkdir(parents=True, exist_ok=True)
