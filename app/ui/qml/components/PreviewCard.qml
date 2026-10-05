@@ -241,7 +241,7 @@ Rectangle {
             spacing: 8
 
             Label {
-                text: "Cuts de página: " + backend.layoutCutCount
+                text: "Page cuts: " + backend.layoutCutCount
                 color: "#dbe5f2"
                 font.pixelSize: 11
                 font.bold: true
