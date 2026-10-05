@@ -180,7 +180,7 @@ class AppController(QObject):
         self.logMessage.emit("▶ Analizando fuente…")
 
         self._pipeline = ExtractionPipeline(self._on_pipeline_event)
-        self._run(self._pipeline.prepare, self._interval_seconds, source)
+        self._run(self._pipeline.prepare, source, self._interval_seconds)
 
     @Slot()
     def reset(self) -> None:
