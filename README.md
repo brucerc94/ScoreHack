@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="./icon.ico" alt="ScoreCapture icon" width="96">
+<img src="./icon.ico" alt="ScoreHack icon" width="96">
 
-# ScoreCapture
+# ScoreHack
 
 ### Reconstruct sheet music from video into printable A4 PDFs
 
@@ -14,7 +14,7 @@
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.x-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-ScoreCapture is a Windows-focused desktop application for turning sheet music displayed in YouTube videos or local video files into clean, printable PDF pages.
+ScoreHack is a Windows-focused desktop application for turning sheet music displayed in YouTube videos or local video files into clean, printable PDF pages.
 
 It is designed for videos where the score moves across the screen as the music progresses. The application keeps the important visual decisions in the user's hands: frame selection, overlap, page cuts, and final A4 composition.
 
@@ -22,11 +22,11 @@ It is designed for videos where the score moves across the screen as the music p
 
 ---
 
-## What ScoreCapture Does
+## What ScoreHack Does
 
 Many sheet-music videos do not contain independent pages. Instead, the viewer sees a moving viewport over one long score.
 
-ScoreCapture turns that into a controlled reconstruction workflow:
+ScoreHack turns that into a controlled reconstruction workflow:
 
 ~~~text
 Video
@@ -83,7 +83,7 @@ Run:
 run.bat
 ~~~
 
-The launcher creates or reuses the virtual environment, installs missing dependencies, and starts ScoreCapture.
+The launcher creates or reuses the virtual environment, installs missing dependencies, and starts ScoreHack.
 
 For developers who prefer to run the project manually:
 
@@ -120,7 +120,7 @@ Supported local containers include common formats such as MP4, MKV, AVI, MOV, WE
 
 ## 3. Choose the frame interval
 
-The **Frame interval** determines how often ScoreCapture samples the video.
+The **Frame interval** determines how often ScoreHack samples the video.
 
 Examples:
 
@@ -245,7 +245,7 @@ This is important because the correct overlap can change from one frame pair to 
 
 ### Automatic overlap
 
-ScoreCapture can estimate the overlap automatically.
+ScoreHack can estimate the overlap automatically.
 
 Treat that value as a suggestion. Repeated musical notation and similar visual patterns can make image matching ambiguous.
 
@@ -304,7 +304,7 @@ You can also edit cut positions numerically in the **Score layout** section.
 
 ### Why are cuts manual?
 
-ScoreCapture does not try to guess the musical meaning of every system. You decide where each printable section should begin and end.
+ScoreHack does not try to guess the musical meaning of every system. You decide where each printable section should begin and end.
 
 This makes the final result predictable.
 
@@ -441,18 +441,6 @@ The processing core is independent from the QML presentation layer.
 run.bat
 ~~~
 
-## Build
-
-~~~text
-build_extractor.bat
-~~~
-
-The generated executable is:
-
-~~~text
-dist\ExtractorPartituras.exe
-~~~
-
 ## Test
 
 ~~~text
@@ -485,7 +473,7 @@ Preview and final PDF generation use the same current layout configuration.
 
 # Limitations
 
-- ScoreCapture extracts sheet music as raster images.
+- ScoreHack extracts sheet music as raster images.
 - It does not recognize notes, chords, lyrics, or musical symbols.
 - It does not generate MusicXML or MIDI.
 - Automatic overlap detection is an assistive estimate and may require manual correction.
@@ -515,7 +503,7 @@ Released under the [MIT License](LICENSE).
 
 <div align="center">
 
-**ScoreCapture**  
+**ScoreHack**  
 Qt 6 · QML · Python · OpenCV
 
 </div>
