@@ -133,7 +133,7 @@ def _normalize_images(images: list[np.ndarray]) -> list[np.ndarray]:
 
 
 def _validate_overrides(
-    overrides: tuple[int, ...],
+    overrides: tuple[int | None, ...],
     frame_count: int,
     frame_width: int,
 ) -> None:
@@ -145,7 +145,10 @@ def _validate_overrides(
         )
     minimum = max(8, int(frame_width * 0.05))
     maximum = max(minimum, int(frame_width * 0.90))
-    if any(overlap < minimum or overlap > maximum for overlap in overrides):
+    if any(
+        overlap is not None and (overlap < minimum or overlap > maximum)
+        for overlap in overrides
+    ):
         raise ValueError("Uno de los solapes manuales está fuera del rango permitido.")
 
 
@@ -189,15 +192,14 @@ def stitch_horizontal(
             )
 
     effective_overlaps = tuple(
-        auto_overlaps[index]
-        if not overlap_overrides or overlap_overrides[index] is None
-        else overlap_overrides[index]
+        overlap_overrides[index]
+        if overlap_overrides and overlap_overrides[index] is not None
+        else (
+            auto_overlaps[index]
+            if confidences[index] >= MIN_AUTO_CONFIDENCE
+            else 0
+        )
         for index in range(len(auto_overlaps))
-    )
-
-    effective_overlaps = tuple(
-        overlap if confidence >= MIN_AUTO_CONFIDENCE else 0
-        for overlap, confidence in zip(effective_overlaps, confidences)
     )
 
     panorama = images[0]
