@@ -125,9 +125,7 @@ class ExtractionPipeline:
         candidates = self._selected_frames(settings)
 
         root = work_root or self.workspace.root
-        aligned_dir = root / "aligned"
         crops_dir = root / "crops"
-        cleaned_dir = root / "cleaned"
 
         self._emit("status", "Applying selected crop…")
         cropped = crop_frames(
